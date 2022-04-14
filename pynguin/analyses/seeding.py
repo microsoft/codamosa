@@ -693,7 +693,7 @@ def create_stmt_from_call(
         )
     gen_callable = find_gen_callable(call, objs_under_test, ref_dict)
     if gen_callable is None:
-        logger.info("No such function found...")
+        logger.info(f"No such function found: {ast.unparse(call.func)}")
         return None
     return assemble_stmt_from_gen_callable(testcase, gen_callable, call, ref_dict)
 
