@@ -30,6 +30,9 @@ from pynguin.utils.generic.genericaccessibleobject import (
     GenericEnum,
     GenericFunction,
     GenericMethod,
+    GenericField,
+    GenericStaticModuleField,
+    GenericStaticField
 )
 from pynguin.utils.type_utils import (
     class_in_module,
@@ -182,6 +185,19 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
         self._test_cluster.add_generator(generic)
         if add_to_test:
             self._test_cluster.add_accessible_object_under_test(generic)
+        #
+        # # Collect Static Fields
+        # for field_name, field in inspect.getmembers(klass, lambda v: not inspect.isfunction(v)):
+        #     if field_name.startswith(("__")): continue
+        #     try:
+        #         field_type = klass.__annotations__[field_name]
+        #     except (AttributeError, KeyError):
+        #         field_type = None
+        #     self.logger(f"Adding static field {field_name} of class {klass.__name__}")
+        #     generic_static_field = GenericStaticField(klass, field_name, field_type)
+        #     self._test_cluster.add_generator(generic_static_field)
+        #     if add_to_test:
+        #         print(field_name, field)
 
         for method_name, method in inspect.getmembers(klass, inspect.isfunction):
             # TODO(fk) why does inspect.ismethod not work here?!

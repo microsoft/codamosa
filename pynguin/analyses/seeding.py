@@ -33,6 +33,7 @@ from pynguin.utils.generic.genericaccessibleobject import (
     GenericConstructor,
     GenericFunction,
     GenericMethod,
+    GenericField,
 )
 from pynguin.utils.statistics.runtimevariable import RuntimeVariable
 from pynguin.utils.type_utils import is_assertable
@@ -480,8 +481,10 @@ def create_assign_stmt(
         new_stmt = create_stmt_from_collection(
             value, testcase, callable_objects_under_test, ref_dict
         )
+    elif isinstance(value, ast.Attribute):
+         new_stmt = create_stmt_from_field_access(value, testcase, ref_dict)
     else:
-        logger.info("Assign statement could not be parsed.")
+        logger.info(f"Assign statement could not be parsed. ({ast.unparse(assign)})")
         new_stmt = None
     if new_stmt is None:
         return None
@@ -665,6 +668,28 @@ def create_stmt_from_unaryop(
     )
     return None
 
+def create_stmt_from_field_access(
+    attr: ast.Attribute,
+    testcase: tc.TestCase,
+    ref_dict : dict[str, vr.VariableReference]
+) -> stmt.FieldStatement | None:
+    """
+    Create the corresponding statement from an ast.Attribute node..
+    """
+    lhs = attr.value
+    if not isinstance(lhs, ast.Name):
+        # Only can be one level of attribute indirection
+        return None
+    attr_name = attr.attr
+    try:
+        lhs_var : vr.VariableReference = ref_dict[lhs.id]
+        owner_type = lhs_var.type
+        if owner_type is None:
+            return None
+        field_obj = GenericField(owner_type, attr_name, None)
+        return stmt.FieldStatement(testcase, field_obj, lhs_var)
+    except KeyError:
+        return None
 
 def create_stmt_from_call(
     call: ast.Call,
@@ -1047,6 +1072,9 @@ class AstToTestCaseTransformer(ast.NodeVisitor):
         self.generic_visit(node)
         if self._current_parsable:
             self._testcases.append(self._current_testcase)
+            logger.info(f"Successfully imported {node.name}")
+        else:
+            logger.info(f"Failed to parse {node.name}")
 
     def visit_Assign(self, node: ast.Assign) -> Any:
         if self._current_parsable:
