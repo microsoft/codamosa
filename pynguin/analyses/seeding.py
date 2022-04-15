@@ -1075,7 +1075,8 @@ class AstToTestCaseTransformer(ast.NodeVisitor):
             logger.info(f"Successfully imported {node.name}")
         else:
             logger.info(f"Failed to parse {node.name}. Retrieved {len(self._current_testcase.statements)} statements.")
-            self._testcases.append(self._current_testcase)
+            if len(self._current_testcase.statements) > 0:
+                self._testcases.append(self._current_testcase)
 
     def visit_Assign(self, node: ast.Assign) -> Any:
         if self._current_parsable:
