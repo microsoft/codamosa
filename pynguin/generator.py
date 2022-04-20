@@ -186,6 +186,7 @@ def _setup_initial_population_seeding(test_cluster: TestCluster):
     if config.configuration.seeding.initial_population_seeding:
         _LOGGER.info("Collecting and parsing provided testcases.")
         seeding.initialpopulationseeding.test_cluster = test_cluster
+        seeding.initialpopulationseeding.sample_with_replacement = config.configuration.seeding.sample_with_replacement
         seeding.initialpopulationseeding.collect_testcases(
             config.configuration.seeding.initial_population_data
         )

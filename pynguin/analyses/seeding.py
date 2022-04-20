@@ -337,6 +337,7 @@ class _InitialPopulationSeeding:
     def __init__(self):
         self._testcases: list[dtc.DefaultTestCase] = []
         self._test_cluster: TestCluster
+        self._sample_with_replacement : bool
 
     @property
     def test_cluster(self) -> TestCluster:
@@ -347,9 +348,22 @@ class _InitialPopulationSeeding:
         """
         return self._test_cluster
 
+    @property
+    def sample_with_replacement(self) -> bool:
+        """Provides whether sampling with replacement is performed.
+
+        Returns:
+            Whether sampling with replacement is performed
+        """
+        return self._sample_with_replacement
+
     @test_cluster.setter
     def test_cluster(self, test_cluster: TestCluster):
         self._test_cluster = test_cluster
+
+    @sample_with_replacement.setter
+    def sample_with_replacement(self, sample_with_replacement:  bool):
+        self._sample_with_replacement = sample_with_replacement
 
     @staticmethod
     def get_ast_tree(module_path: AnyStr | os.PathLike[AnyStr]) -> ast.Module | None:
@@ -438,7 +452,11 @@ class _InitialPopulationSeeding:
         Returns:
             A random test case
         """
-        return self._testcases[randomness.next_int(0, len(self._testcases))]
+        if self._sample_with_replacement:
+            return self._testcases[randomness.next_int(0, len(self._testcases))]
+        else:
+            test_case_idx = randomness.next_int(0, len(self._testcases))
+            return self._testcases.pop(test_case_idx)
 
     @property
     def has_tests(self) -> bool:

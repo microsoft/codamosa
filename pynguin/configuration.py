@@ -262,6 +262,9 @@ class SeedingConfiguration:
     """The path to the file with the pre-existing tests. The path has to include the
     file itself."""
 
+    sample_with_replacement: bool = True
+    """Should we allow sampling with replacement from previously existing testcases?"""
+
     seeded_testcases_reuse_probability: float = 0.9
     """Probability of using seeded testcases when initial population seeding is
     enabled."""
