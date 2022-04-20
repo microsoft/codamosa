@@ -23,6 +23,7 @@ from setuptools import find_packages
 import pynguin.assertion.assertion as ass
 import pynguin.configuration as config
 import pynguin.ga.testcasechromosome as tcc
+from pynguin.generation.export.pytestexporter import PyTestExporter
 import pynguin.testcase.defaulttestcase as dtc
 import pynguin.testcase.statement as stmt
 import pynguin.testcase.testfactory as tf
@@ -411,9 +412,13 @@ class _InitialPopulationSeeding:
             logger.info(
                 "Number successfully collected test cases: %s", len(self._testcases)
             )
+            exporter = PyTestExporter(wrap_code=True)
+            logger.info(f"Imported test cases:\n {exporter.export_sequences_to_str(self._testcases)}")
         stat.track_output_variable(
             RuntimeVariable.CollectedTestCases, len(self._testcases)
         )
+        stat.track_output_variable(RuntimeVariable.ParsableStatements, transformer.total_statements)
+        stat.track_output_variable(RuntimeVariable.ParsedStatements, transformer.total_parsed_statements)
         self._mutate_testcases_initially()
 
     def _mutate_testcases_initially(self):
@@ -1063,18 +1068,25 @@ class AstToTestCaseTransformer(ast.NodeVisitor):
         self._number_found_testcases: int = 0
         self._test_cluster = test_cluster
         self._create_assertions = create_assertions
+        self.total_statements = 0
+        self.total_parsed_statements = 0
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
         self._number_found_testcases += 1
         self._current_testcase = dtc.DefaultTestCase()
         self._current_parsable = True
+        self._current_parsed_statements = 0
+        self._current_max_num_statements = len([e for e in node.body if not isinstance(e, ast.Assert)])
         self._var_refs.clear()
         self.generic_visit(node)
+        self.total_statements += self._current_max_num_statements
+        self.total_parsed_statements += self._current_parsed_statements
         if self._current_parsable:
             self._testcases.append(self._current_testcase)
-            logger.info(f"Successfully imported {node.name}")
+            logger.info(f"Successfully imported {node.name}.")
         else:
-            logger.info(f"Failed to parse {node.name}. Retrieved {len(self._current_testcase.statements)} statements.")
+            logger.info(f"Failed to parse {node.name}. Retrieved {len(self._current_testcase.statements)}"
+                        f"/{self._current_max_num_statements} statements.")
             if len(self._current_testcase.statements) > 0:
                 self._testcases.append(self._current_testcase)
 
@@ -1087,6 +1099,7 @@ class AstToTestCaseTransformer(ast.NodeVisitor):
             ) is None:
                 self._current_parsable = False
             else:
+                self._current_parsed_statements += 1
                 ref_id, stm = result
                 var_ref = self._current_testcase.add_variable_creating_statement(stm)
                 self._var_refs[ref_id] = var_ref

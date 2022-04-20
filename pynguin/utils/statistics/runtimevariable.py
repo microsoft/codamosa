@@ -129,5 +129,12 @@ class RuntimeVariable(str, enum.Enum):
     # Indicates if a suitable test module was found to seed initial testcases
     SuitableTestModule = "SuitableTestModule"
 
+    # Parsable Statements in seeded initial test case
+    ParsableStatements = "ParsableStatements"
+
+    # Parsed Statements in seeded initial test cases
+    ParsedStatements = "ParsedStatements"
+
+
     def __repr__(self):
         return f"{self.name}"
