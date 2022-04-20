@@ -501,6 +501,9 @@ class StoppingConfiguration:
     maximum_iterations: int = -1
     """Maximum iterations"""
 
+    stop_immediately: bool = False
+    """Stop immediately after seeding"""
+
 
 # pylint: disable=too-many-instance-attributes, pointless-string-statement
 @dataclasses.dataclass

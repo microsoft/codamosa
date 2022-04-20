@@ -42,6 +42,7 @@ from pynguin.generation.algorithms.randomsearchstrategy import (
 from pynguin.generation.algorithms.randomteststrategy import RandomTestStrategy
 from pynguin.generation.algorithms.wholesuiteteststrategy import WholeSuiteTestStrategy
 from pynguin.generation.stoppingconditions.stoppingcondition import (
+    ImmediateStopCondition,
     MaxIterationsStoppingCondition,
     MaxSearchTimeStoppingCondition,
     MaxStatementExecutionsStoppingCondition,
@@ -86,6 +87,8 @@ class GenerationAlgorithmFactory(Generic[C], metaclass=ABCMeta):
             conditions.append(MaxTestExecutionsStoppingCondition(max_test_exec))
         if (max_search_time := stopping.maximum_search_time) >= 0:
             conditions.append(MaxSearchTimeStoppingCondition(max_search_time))
+        if (stopping.stop_immediately):
+            conditions.append(ImmediateStopCondition())
         if len(conditions) == 0:
             self._logger.info("No stopping condition configured!")
             self._logger.info(

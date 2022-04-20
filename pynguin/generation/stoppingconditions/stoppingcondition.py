@@ -264,3 +264,39 @@ class MaxSearchTimeStoppingCondition(StoppingCondition):
 
     def __str__(self):
         return f"Used search time: {self.current_value()}/{self.limit()}"
+
+
+class ImmediateStopCondition(StoppingCondition):
+    """Stop search immediately. For seeding debugging purposes only"""
+
+    def __init__(self):
+        """Create new MaxIterationsStoppingCondition.
+
+        Args:
+            max_iterations: the maximum number of allowed iterations.
+        """
+        super().__init__()
+
+    def current_value(self) -> int:
+        return 0
+
+    def limit(self) -> int:
+        return 0
+
+    def is_fulfilled(self) -> bool:
+        return True
+
+    def reset(self) -> None:
+        pass
+
+    def set_limit(self, limit: int) -> None:
+        pass
+
+    def before_search_start(self, start_time_ns: int) -> None:
+        pass
+
+    def after_search_iteration(self, best: tsc.TestSuiteChromosome) -> None:
+        pass
+
+    def __str__(self):
+        return f"Stopped Immediately."
