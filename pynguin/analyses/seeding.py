@@ -412,7 +412,7 @@ class _InitialPopulationSeeding:
             logger.info(
                 "Number successfully collected test cases: %s", len(self._testcases)
             )
-            exporter = PyTestExporter(wrap_code=True)
+            exporter = PyTestExporter(wrap_code=False)
             logger.info(f"Imported test cases:\n {exporter.export_sequences_to_str(self._testcases)}")
         stat.track_output_variable(
             RuntimeVariable.CollectedTestCases, len(self._testcases)
@@ -1070,8 +1070,13 @@ class AstToTestCaseTransformer(ast.NodeVisitor):
         self._create_assertions = create_assertions
         self.total_statements = 0
         self.total_parsed_statements = 0
+        self._current_parsed_statements = 0
+        self._current_max_num_statements = 0
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
+        # Don't include non-test functions as tests.
+        if not node.name.startswith('test_'):
+            return
         self._number_found_testcases += 1
         self._current_testcase = dtc.DefaultTestCase()
         self._current_parsable = True
@@ -1085,10 +1090,12 @@ class AstToTestCaseTransformer(ast.NodeVisitor):
             self._testcases.append(self._current_testcase)
             logger.info(f"Successfully imported {node.name}.")
         else:
-            logger.info(f"Failed to parse {node.name}. Retrieved {len(self._current_testcase.statements)}"
-                        f"/{self._current_max_num_statements} statements.")
-            if len(self._current_testcase.statements) > 0:
+            if self._current_parsed_statements > 0:
+                logger.info(f"Partially parsed {node.name}. Retrieved {self._current_parsed_statements}"
+                            f"/{self._current_max_num_statements} statements.")
                 self._testcases.append(self._current_testcase)
+            else:
+                logger.info(f"Failed to parse {node.name}.")
 
     def visit_Assign(self, node: ast.Assign) -> Any:
         if self._current_parsable:
