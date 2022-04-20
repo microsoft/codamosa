@@ -22,3 +22,6 @@ class NoneExporter(AbstractTestExporter):
 
     def export_sequences(self, path: str | os.PathLike, test_cases: list[tc.TestCase]):
         pass
+
+    def export_sequences_to_str(self, test_cases: list[tc.TestCase]) -> str:
+        return ""

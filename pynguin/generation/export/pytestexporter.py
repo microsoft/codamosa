@@ -33,3 +33,17 @@ class PyTestExporter(AbstractTestExporter):
         functions = AbstractTestExporter._create_functions(asts, False)
         module = ast.Module(body=import_nodes + functions, type_ignores=[])
         AbstractTestExporter._save_ast_to_file(path, module)
+
+    def export_sequences_to_str(self, test_cases: list[tc.TestCase]) -> str:
+        (
+            module_aliases,
+            common_modules,
+            asts,
+        ) = self._transform_to_asts(test_cases)
+        import_nodes = AbstractTestExporter._create_ast_imports(
+            module_aliases, common_modules
+        )
+        functions = AbstractTestExporter._create_functions(asts, False)
+        module = ast.Module(body=import_nodes + functions, type_ignores=[])
+        return AbstractTestExporter._save_ast_to_string( module)
+
