@@ -487,6 +487,8 @@ def create_assign_stmt(
         The corresponding statement or None if no statement type matches.
     """
     new_stmt: stmt.VariableCreatingStatement | None
+    if len(assign.targets) > 1 or not isinstance(assign.targets[0], ast.Name):
+        return None
     value = assign.value
     objs_under_test = test_cluster.accessible_objects_under_test
     callable_objects_under_test: set[GenericCallableAccessibleObject] = {
@@ -679,6 +681,8 @@ def create_stmt_from_unaryop(
     Returns:
         The corresponding statement.
     """
+    if not isinstance(unaryop.operand, ast.Constant):
+        return None
     val = unaryop.operand.value  # type: ignore
     if isinstance(val, bool):
         return stmt.BooleanPrimitiveStatement(testcase, not val)

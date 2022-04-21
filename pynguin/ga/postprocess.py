@@ -117,7 +117,7 @@ class UnusedPrimitiveOrCollectionStatementVisitor(StatementVisitor):
         self._handle_remaining(stmt)
 
     def visit_field_statement(self, stmt) -> None:
-        raise NotImplementedError("No field support yet.")
+        self._handle_remaining(stmt)
 
     def visit_assignment_statement(self, stmt) -> None:
         raise NotImplementedError("No field support yet.")
