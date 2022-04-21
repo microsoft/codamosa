@@ -126,6 +126,10 @@ class RuntimeVariable(str, enum.Enum):
     # The number of found test cases independent of it can be collected or not
     FoundTestCases = "FoundTestCases"
 
+    # The number of collected test cases removed because they had no coverage beyond
+    # the import coverage
+    NoCoverageTestCases = "NoCoverageTestCases"
+
     # Indicates if a suitable test module was found to seed initial testcases
     SuitableTestModule = "SuitableTestModule"
 

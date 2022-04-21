@@ -181,11 +181,12 @@ def _setup_constant_seeding_collection() -> None:
         )
 
 
-def _setup_initial_population_seeding(test_cluster: TestCluster):
+def _setup_initial_population_seeding(test_cluster: TestCluster, executor: TestCaseExecutor):
     """Collect and parse tests for seeding the initial population"""
     if config.configuration.seeding.initial_population_seeding:
         _LOGGER.info("Collecting and parsing provided testcases.")
         seeding.initialpopulationseeding.test_cluster = test_cluster
+        seeding.initialpopulationseeding.executor = executor
         seeding.initialpopulationseeding.sample_with_replacement = config.configuration.seeding.sample_with_replacement
         seeding.initialpopulationseeding.collect_testcases(
             config.configuration.seeding.initial_population_data
@@ -219,7 +220,7 @@ def _setup_and_check() -> tuple[TestCaseExecutor, TestCluster] | None:
     _track_sut_data(tracer, test_cluster)
     _setup_random_number_generator()
     _setup_constant_seeding_collection()
-    _setup_initial_population_seeding(test_cluster)
+    _setup_initial_population_seeding(test_cluster, executor)
     return executor, test_cluster
 
 

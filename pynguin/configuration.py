@@ -265,6 +265,9 @@ class SeedingConfiguration:
     sample_with_replacement: bool = True
     """Should we allow sampling with replacement from previously existing testcases?"""
 
+    remove_testcases_without_coverage: bool = True
+    """Should we remove seeded test cases that don't have any coverage of the test module?"""
+
     seeded_testcases_reuse_probability: float = 0.9
     """Probability of using seeded testcases when initial population seeding is
     enabled."""

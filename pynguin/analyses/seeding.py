@@ -23,11 +23,13 @@ from setuptools import find_packages
 import pynguin.assertion.assertion as ass
 import pynguin.configuration as config
 import pynguin.ga.testcasechromosome as tcc
+from pynguin.ga.computations import compute_branch_coverage
 from pynguin.generation.export.pytestexporter import PyTestExporter
 import pynguin.testcase.defaulttestcase as dtc
 import pynguin.testcase.statement as stmt
 import pynguin.testcase.testfactory as tf
 import pynguin.utils.statistics.statistics as stat
+from pynguin.testcase.execution import TestCaseExecutor, ExecutionResult
 from pynguin.utils import randomness
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericCallableAccessibleObject,
@@ -337,7 +339,8 @@ class _InitialPopulationSeeding:
     def __init__(self):
         self._testcases: list[dtc.DefaultTestCase] = []
         self._test_cluster: TestCluster
-        self._sample_with_replacement : bool
+        self._executor: TestCaseExecutor
+        self._sample_with_replacement: bool
 
     @property
     def test_cluster(self) -> TestCluster:
@@ -347,6 +350,15 @@ class _InitialPopulationSeeding:
             The test cluster
         """
         return self._test_cluster
+
+    @property
+    def executor(self) -> TestCaseExecutor:
+        """Provides the test cluster.
+
+        Returns:
+            The test cluster
+        """
+        return self._executor
 
     @property
     def sample_with_replacement(self) -> bool:
@@ -360,6 +372,10 @@ class _InitialPopulationSeeding:
     @test_cluster.setter
     def test_cluster(self, test_cluster: TestCluster):
         self._test_cluster = test_cluster
+
+    @executor.setter
+    def executor(self, executor: TestCaseExecutor):
+        self._executor = executor
 
     @sample_with_replacement.setter
     def sample_with_replacement(self, sample_with_replacement:  bool):
@@ -433,6 +449,7 @@ class _InitialPopulationSeeding:
         )
         stat.track_output_variable(RuntimeVariable.ParsableStatements, transformer.total_statements)
         stat.track_output_variable(RuntimeVariable.ParsedStatements, transformer.total_parsed_statements)
+        self._remove_no_coverage_testcases()
         self._mutate_testcases_initially()
 
     def _mutate_testcases_initially(self):
@@ -444,6 +461,26 @@ class _InitialPopulationSeeding:
                 testcase_wrapper.mutate()
                 if not testcase_wrapper.test_case.statements:
                     self._testcases.remove(testcase)
+
+    def _remove_no_coverage_testcases(self):
+        """Removes testcases whose coverage is """
+        if config.configuration.seeding.remove_testcases_without_coverage:
+            num_removed_test_cases = 0
+            tracer = self._executor.tracer
+            import_coverage = compute_branch_coverage(tracer.import_trace, tracer.get_known_data())
+            for testcase in self._testcases:
+                result : ExecutionResult = self._executor.execute(testcase)
+                coverage = compute_branch_coverage(result.execution_trace, tracer.get_known_data())
+                if coverage <= import_coverage:
+                    self._testcases.remove(testcase)
+                num_removed_test_cases += 1
+            logger.info(
+                "Number test cases removed because they have no coverage: %s", num_removed_test_cases
+            )
+            stat.track_output_variable(
+                RuntimeVariable.NoCoverageTestCases, num_removed_test_cases
+            )
+
 
     @property
     def seeded_testcase(self) -> dtc.DefaultTestCase:
