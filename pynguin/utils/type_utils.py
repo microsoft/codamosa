@@ -75,6 +75,32 @@ def function_in_module(module_name: str) -> Callable[[Any], bool]:
     return lambda member: isfunction(member) and member.__module__ == module_name
 
 
+def class_not_in_module(module_name: str) -> Callable[[Any], bool]:
+    """Returns a predicate which filters out any classes directly defined in the
+    given module.
+
+    Args:
+        module_name: the name of the model
+
+    Returns:
+        A filter predicate
+    """
+    return lambda member: isclass(member) and member.__module__ != module_name
+
+
+def function_not_in_module(module_name: str) -> Callable[[Any], bool]:
+    """Returns a predicate which filters out any functions  directly defined in the
+    given module.
+
+    Args:
+        module_name: the name of the model
+
+    Returns:
+        A filter predicate
+    """
+    return lambda member: isfunction(member) and member.__module__ != module_name
+
+
 def is_none_type(type_: type | None) -> bool:
     """Is the given type NoneType?
 
