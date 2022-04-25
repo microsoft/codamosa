@@ -531,6 +531,7 @@ def create_assign_stmt(
     callable_objects_under_test: set[GenericCallableAccessibleObject] = {
         o for o in objs_under_test if isinstance(o, GenericCallableAccessibleObject)
     }
+
     if isinstance(value, ast.Constant):
         new_stmt = create_stmt_from_constant(value, testcase)
     elif isinstance(value, ast.UnaryOp):
@@ -781,6 +782,7 @@ def create_stmt_from_call(
             call, testcase, objs_under_test, ref_dict
         )
     gen_callable = find_gen_callable(call, objs_under_test, ref_dict)
+    #TODO(clemieux) try to resolve function more
     if gen_callable is None:
         logger.info(f"No such function found: {ast.unparse(call.func)}")
         return None
@@ -1111,6 +1113,11 @@ def try_generating_specific_function(
         return create_stmt_from_collection(
             dict_node, testcase, objs_under_test, ref_dict
         )
+    # TODO(clemieux): add case for other generic callables from __builtins__
+    if func_id in __builtins__.__dict__:
+        logger.debug(f"Trying to parse builtin function: {func_id}")
+        # TODO: probably need to add a BuiltInStatement in order to support this
+        return None
     return None
 
 
@@ -1141,6 +1148,7 @@ class AstToTestCaseTransformer(ast.NodeVisitor):
         self._current_parsable = True
         self._current_parsed_statements = 0
         self._current_max_num_statements = len([e for e in node.body if not isinstance(e, ast.Assert)])
+        print(f'==> Parsing {node.name} <==')
         self._var_refs.clear()
         self.generic_visit(node)
         self.total_statements += self._current_max_num_statements
