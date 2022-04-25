@@ -17,7 +17,7 @@ import typing
 from typing_inspect import get_args, is_union_type
 
 import pynguin.configuration as config
-from pynguin.setup.testcluster import FullTestCluster, TestCluster
+from pynguin.setup.testcluster import FullTestCluster, TestCluster, ExpandableTestCluster
 from pynguin.typeinference import typeinference
 from pynguin.typeinference.nonstrategy import NoTypeInferenceStrategy
 from pynguin.typeinference.strategy import TypeInferenceStrategy
@@ -39,7 +39,7 @@ from pynguin.utils.type_utils import (
     function_in_module,
     get_class_that_defined_method,
     is_primitive_type,
-    is_type_unknown,
+    is_type_unknown, function_not_in_module, class_not_in_module,
 )
 
 
@@ -61,11 +61,15 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
 
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, modules_name: str):
+    def __init__(self, modules_name: str, make_expandable: bool = False):
         self._module_name = modules_name
         self._analyzed_classes: set[type] = set()
         self._dependencies_to_solve: set[DependencyPair] = set()
-        self._test_cluster: FullTestCluster = FullTestCluster()
+        self._make_expandable_cluster = make_expandable
+        if self._make_expandable_cluster:
+            self._test_cluster: ExpandableTestCluster = ExpandableTestCluster()
+        else:
+            self._test_cluster: FullTestCluster = FullTestCluster()
         self._inference = typeinference.TypeInference(
             strategies=self._initialise_type_inference_strategies()
         )

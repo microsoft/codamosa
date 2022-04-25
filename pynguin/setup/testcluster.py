@@ -11,7 +11,7 @@ import json
 import logging
 import typing
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional, List, Dict
 
 from ordered_set import OrderedSet
 from typing_inspect import get_args, is_union_type
@@ -20,7 +20,7 @@ from pynguin.instrumentation.instrumentation import CODE_OBJECT_ID_KEY
 from pynguin.utils import randomness, type_utils
 from pynguin.utils.exceptions import ConstructionFailedException
 from pynguin.utils.generic.genericaccessibleobject import (
-    GenericCallableAccessibleObject,
+    GenericCallableAccessibleObject, GenericMethod, GenericAccessibleObject
 )
 from pynguin.utils.type_utils import COLLECTIONS, PRIMITIVES
 
@@ -250,6 +250,100 @@ class FullTestCluster(TestCluster):
                 return randomness.choice(possible_types)
             return None
         return select_from
+
+class ExpandableTestCluster(FullTestCluster):
+    """A test cluster that keeps track of *all possible* method/constructors/functions
+    in the module under test as well as *all* accessible modules under import.
+
+    Initially, it behaves as a regular FullTestCluster, but if resolve_function_call
+    resolves the function call with a
+    """
+
+    def __init__(self):
+        """Create new test cluster."""
+        super().__init__()
+        self._backup_accessible_objects: OrderedSet[
+            GenericAccessibleObject
+        ] = OrderedSet()
+        self._name_idx : Dict[str, List[GenericAccessibleObject]] = {}
+
+
+    def _add_to_index(self, func: GenericAccessibleObject):
+        """Adds the function func to the index of names -> GAO mappings.
+        """
+        #TODO(!!!) Implement
+        pass
+
+    def _promote_object(self, func: GenericAccessibleObject):
+        """
+        Promotes the object to go into generators/modifiers.
+        """
+        if func in self._backup_accessible_objects:
+            self.add_generator(func)
+            if func.is_method():
+                func: GenericMethod
+                modified_type = func.owner
+                self.add_modifier(modified_type, func)
+
+            # TODO: do we also add it to objects under test? Can we dynamically observe its return type
+            # This is not really what we want to do. really we only want to add it as a generator,
+            # but of the correct type. I think that might require dynamically observing
+            #self.accessible_objects_under_test.add(func)
+            self._backup_accessible_objects.remove(func)
+
+    def add_generator(self, generator: GenericAccessibleObject) -> None:
+        """Add the given accessible as a generator, and keep track of its name.
+
+        Args:
+            generator: The accessible object
+        """
+        self._add_to_index(generator)
+        super().add_generator(generator)
+
+    def add_accessible_object_under_test(self, obj: GenericAccessibleObject) -> None:
+        """Add accessible object to the objects under test, and keep track of its name.
+
+        Args:
+            obj: The accessible object
+        """
+        self._add_to_index(obj)
+        super().add_accessible_object_under_test(obj)
+
+    def add_modifier(self, type_: type, obj: GenericAccessibleObject) -> None:
+        """Add a modifier.
+
+        A modified is something that can be used to modify the given type,
+        e.g. a method, and keep track of its name.
+
+        Args:
+            type_: The type that can be modified
+            obj: The accessible that can modify
+        """
+        self._add_to_index(obj)
+        super().add_modifier(type_, obj)
+
+    def try_resolve_call(self, call_name: str) -> Optional[GenericAccessibleObject]:
+        """Tries to resolve the function in call_name to an accessible object.
+
+        If call_name is found in the backup set of functions, it will be upgraded to the
+        set of testable objects (TODO: will it?)
+        """
+        if call_name in self._name_idx:
+            # TODO(!!!): be smarter?
+            gao_to_return = self._name_idx[call_name][0]
+            self._promote_object(gao_to_return)
+            return gao_to_return
+        return None
+
+    def add_backup_accessible_object(self, obj: GenericAccessibleObject) -> None:
+        """Add a backup accessible object.
+
+        Args:
+            obj: The accessible object
+        """
+        self._add_to_index(obj)
+        self._backup_accessible_objects.add(obj)
+
 
 
 class FilteredTestCluster(TestCluster):
