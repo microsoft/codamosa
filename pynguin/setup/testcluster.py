@@ -20,7 +20,7 @@ from pynguin.instrumentation.instrumentation import CODE_OBJECT_ID_KEY
 from pynguin.utils import randomness, type_utils
 from pynguin.utils.exceptions import ConstructionFailedException
 from pynguin.utils.generic.genericaccessibleobject import (
-    GenericCallableAccessibleObject, GenericMethod, GenericAccessibleObject
+    GenericCallableAccessibleObject, GenericMethod, GenericAccessibleObject, GenericConstructor, GenericFunction
 )
 from pynguin.utils.type_utils import COLLECTIONS, PRIMITIVES
 
@@ -271,8 +271,23 @@ class ExpandableTestCluster(FullTestCluster):
     def _add_to_index(self, func: GenericAccessibleObject):
         """Adds the function func to the index of names -> GAO mappings.
         """
-        #TODO(!!!) Implement
-        pass
+        if func.is_constructor():
+            func: GenericConstructor
+            func_name = func.generated_type().__name__
+            if func_name in self._name_idx:
+                self._name_idx[func_name].append(func)
+            else:
+                self._name_idx[func_name] = [func]
+        elif func.is_function():
+            func: GenericFunction
+            func_name = func.function_name
+            if func_name in self._name_idx:
+                self._name_idx[func_name].append(func)
+            else:
+                self._name_idx[func_name] = [func]
+        #TODO(!!!) Implement for methods? Do we have issues with methods?
+        #TODO(!!!) should we qualify with imported module names?
+
 
     def _promote_object(self, func: GenericAccessibleObject):
         """

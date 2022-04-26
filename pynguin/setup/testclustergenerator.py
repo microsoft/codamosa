@@ -126,6 +126,32 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
             self._test_cluster.add_accessible_object_under_test(generic_function)
             self._add_callable_dependencies(generic_function, 1)
         self._resolve_dependencies_recursive()
+
+        if self._make_expandable_cluster:
+            pass
+            # self._test_cluster: ExpandableTestCluster
+            # for _, klass in inspect.getmembers(module, class_not_in_module(self._module_name)):
+            #     self._add_dependency(klass, 1, False)
+            #
+            # for function_name, funktion in inspect.getmembers(
+            #     module, function_not_in_module(self._module_name)
+            # ):
+            #     generic_function = GenericFunction(
+            #         funktion, self._inference.infer_type_info(funktion)[0], function_name
+            #     )
+            #     if self._is_protected(
+            #         function_name
+            #     ) or self._discard_accessible_with_missing_type_hints(generic_function):
+            #         self._logger.debug("Skip function %s", function_name)
+            #         continue
+            #
+            #     self._logger.debug("Analyzing function %s", function_name)
+            #     self._test_cluster.add_backup_accessible_object(generic_function)
+            #     self._add_callable_dependencies(generic_function, 1)
+            #
+            # for module_name, module in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
+            #     pass
+
         return self._test_cluster
 
     def _add_callable_dependencies(
@@ -189,6 +215,9 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
         self._test_cluster.add_generator(generic)
         if add_to_test:
             self._test_cluster.add_accessible_object_under_test(generic)
+        elif self._make_expandable_cluster:
+            self._test_cluster: ExpandableTestCluster
+            self._test_cluster.add_backup_accessible_object(generic)
         #
         # # Collect Static Fields
         # for field_name, field in inspect.getmembers(klass, lambda v: not inspect.isfunction(v)):
@@ -229,6 +258,9 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
             self._test_cluster.add_modifier(klass, generic_method)
             if add_to_test:
                 self._test_cluster.add_accessible_object_under_test(generic_method)
+            elif self._make_expandable_cluster:
+                self._test_cluster: ExpandableTestCluster
+                self._test_cluster.add_backup_accessible_object(generic_method)
             self._add_callable_dependencies(generic_method, recursion_level)
         # TODO(fk) how do we find attributes?
 

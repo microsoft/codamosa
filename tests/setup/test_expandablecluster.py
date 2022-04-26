@@ -25,6 +25,13 @@ from pynguin.utils.generic.genericaccessibleobject import (
     GenericMethod,
 )
 
+def test_can_retrieve_constructor():
+    cluster: ExpandableTestCluster = TestClusterGenerator(
+        "tests.fixtures.cluster.complex_dependencies", True
+    ).generate_cluster()
+    gao = cluster.try_resolve_call('SomeClass')
+    assert gao is not None, f'{gao}'
+
 def test_accessible_expand_with_types():
     cluster : ExpandableTestCluster = TestClusterGenerator(
         "tests.fixtures.cluster.typeless_dependencies", True
