@@ -112,11 +112,46 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
                 if module_name != module_obj.__name__:
                     self._test_cluster.add_module_alias(module_obj.__name__, module_name)
 
-        for _, klass in inspect.getmembers(module, class_in_module(self._module_name)):
-            self._add_dependency(klass, 1, True)
+        self.add_classes_and_functions(self._module_name, module, True, True, 1)
+        self._resolve_dependencies_recursive()
 
+        # If we're making an expandable cluster, create the backup set of GAOs.
+        if self._make_expandable_cluster:
+            self._test_cluster: ExpandableTestCluster
+            self._test_cluster.set_backup_mode(True)
+            self.add_classes_and_functions(self._module_name, module, False, False, 1)
+
+            # Retrieve functions and classes in imported modules too
+            for _, module_obj in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
+                module_name = module_obj.__name__
+                self.add_classes_and_functions(module_name, module_obj, False, True, 2)
+
+            self._resolve_dependencies_recursive()
+            self._test_cluster.set_backup_mode(False)
+        return self._test_cluster
+
+    def add_classes_and_functions(self, module_name: str, module_obj, under_test: bool, from_module: bool,
+                                  recursion_lvl : int):
+        """Adds all the classes and functions from the module_obj with name module_name to the test cluster,
+        if from_module is True, only keep the ones defined in this module; if from_module is false, only
+        keep the ones imported by but not defined in this module.
+
+        Args:
+            module_name: the name of the module
+            module_obj: the module object
+            under_test: should functions/methods/constructed be added to generic accessibles under test?
+            from_module: if True, filter to classes/functions defined in the module; if False, filter to
+            classes/functions defined out of the module.
+            recursion_lvl: the level of recursion (1 if this is the module under test; 2 if it's already an imported
+            module)
+        """
+        module_check = class_in_module if from_module else class_not_in_module
+        function_check = function_in_module if from_module else function_not_in_module
+
+        for _, klass in inspect.getmembers(module_obj, module_check(module_name)):
+            self._add_dependency(klass, recursion_lvl, under_test)
         for function_name, funktion in inspect.getmembers(
-            module, function_in_module(self._module_name)
+            module_obj, function_check(module_name)
         ):
 
             generic_function = GenericFunction(
@@ -130,41 +165,9 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
 
             self._logger.debug("Analyzing function %s", function_name)
             self._test_cluster.add_generator(generic_function)
-            self._test_cluster.add_accessible_object_under_test(generic_function)
-            self._add_callable_dependencies(generic_function, 1)
-        self._resolve_dependencies_recursive()
-
-        # If we're making an expandable cluster, create the backup set of GAOs.
-        if self._make_expandable_cluster:
-
-
-            self._test_cluster: ExpandableTestCluster
-            # # Classes imported via `from ... import`
-            # for _, klass in inspect.getmembers(module, class_not_in_module(self._module_name)):
-            #     self._add_dependency(klass, 1, False)
-            #
-            # # Functions imported via `from ... import`
-            # for function_name, funktion in inspect.getmembers(
-            #     module, function_not_in_module(self._module_name)
-            # ):
-            #     generic_function = GenericFunction(
-            #         funktion, self._inference.infer_type_info(funktion)[0], function_name
-            #     )
-            #     if self._is_protected(
-            #         function_name
-            #     ) or self._discard_accessible_with_missing_type_hints(generic_function):
-            #         self._logger.debug("Skip function %s", function_name)
-            #         continue
-            #
-            #     self._logger.debug("Analyzing function %s", function_name)
-            #     self._test_cluster.add_backup_accessible_object(generic_function)
-            #     self._add_callable_dependencies(generic_function, 1)
-
-            # Retrieve functions and classes in imported modules too
-            for module_name, module_obj in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
-                pass
-
-        return self._test_cluster
+            if under_test:
+                self._test_cluster.add_accessible_object_under_test(generic_function)
+            self._add_callable_dependencies(generic_function, recursion_lvl)
 
     def _add_callable_dependencies(
         self, call: GenericCallableAccessibleObject, recursion_level: int
@@ -222,16 +225,11 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
             )
             if self._discard_accessible_with_missing_type_hints(generic_constructor):
                 return
-            # (CL) If we're in backup mode, we want to add these to the expanding map instead
             self._add_callable_dependencies(generic_constructor, recursion_level)
 
-        # If we're in backup mode, we don't add this as a generator yet. It will be added if we imported
         self._test_cluster.add_generator(generic)
         if add_to_test:
             self._test_cluster.add_accessible_object_under_test(generic)
-        elif self._make_expandable_cluster:
-            self._test_cluster: ExpandableTestCluster
-            self._test_cluster.add_backup_accessible_object(generic)
 
         for method_name, method in inspect.getmembers(klass, inspect.isfunction):
             # TODO(fk) why does inspect.ismethod not work here?!
@@ -255,15 +253,10 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
                 # neither be part of the cluster.
                 continue
 
-            # (CL) If we're backing up, don't add these straightaway
             self._test_cluster.add_generator(generic_method)
             self._test_cluster.add_modifier(klass, generic_method)
             if add_to_test:
                 self._test_cluster.add_accessible_object_under_test(generic_method)
-            elif self._make_expandable_cluster:
-                self._test_cluster: ExpandableTestCluster
-                self._test_cluster.add_backup_accessible_object(generic_method)
-            # (CL) If we're backing up, just store these.
             self._add_callable_dependencies(generic_method, recursion_level)
         # TODO(fk) how do we find attributes?
 

@@ -265,9 +265,13 @@ class ExpandableTestCluster(FullTestCluster):
         self._backup_accessible_objects: OrderedSet[
             GenericAccessibleObject
         ] = OrderedSet()
+        self._backup_mode = False
         self._backup_dependency_map : Dict[GenericAccessibleObject, List[type]] = {}
         self._name_idx : Dict[str, List[GenericAccessibleObject]] = {}
         self._module_aliases : Dict[str, str] = {}
+
+    def set_backup_mode(self, mode: bool):
+        self._backup_mode = mode
 
     def add_module_alias(self, orig_module_name: str, alias_in_file: str):
         """
@@ -312,6 +316,9 @@ class ExpandableTestCluster(FullTestCluster):
         """
         Promotes the object to go into generators/modifiers.
         """
+        # Otherwise add_generator and add_modifier will do nothing
+        assert self._backup_mode is False
+
         if func in self._backup_accessible_objects:
             self.add_generator(func)
             if func.is_method():
@@ -323,7 +330,6 @@ class ExpandableTestCluster(FullTestCluster):
             # This is not really what we want to do. really we only want to add it as a generator,
             # but of the correct type. I think that might require dynamically observing
             #self.accessible_objects_under_test.add(func)
-            self._backup_accessible_objects.remove(func)
 
     def add_generator(self, generator: GenericAccessibleObject) -> None:
         """Add the given accessible as a generator, and keep track of its name.
@@ -332,7 +338,8 @@ class ExpandableTestCluster(FullTestCluster):
             generator: The accessible object
         """
         self._add_to_index(generator)
-        super().add_generator(generator)
+        if not self._backup_mode:
+            super().add_generator(generator)
 
     def add_accessible_object_under_test(self, obj: GenericAccessibleObject) -> None:
         """Add accessible object to the objects under test, and keep track of its name.
@@ -341,7 +348,8 @@ class ExpandableTestCluster(FullTestCluster):
             obj: The accessible object
         """
         self._add_to_index(obj)
-        super().add_accessible_object_under_test(obj)
+        if not self._backup_mode:
+            super().add_accessible_object_under_test(obj)
 
     def add_modifier(self, type_: type, obj: GenericAccessibleObject) -> None:
         """Add a modifier.
@@ -354,7 +362,8 @@ class ExpandableTestCluster(FullTestCluster):
             obj: The accessible that can modify
         """
         self._add_to_index(obj)
-        super().add_modifier(type_, obj)
+        if not self._backup_mode:
+            super().add_modifier(type_, obj)
 
     def try_resolve_call(self, call_name: str) -> Optional[GenericAccessibleObject]:
         """Tries to resolve the function in call_name to an accessible object.
@@ -363,20 +372,11 @@ class ExpandableTestCluster(FullTestCluster):
         set of testable objects (TODO: will it?)
         """
         if call_name in self._name_idx:
-            # TODO(!!!): be smarter?
+            # TODO(!!!): be smarter than just taking the first one?
             gao_to_return = self._name_idx[call_name][0]
             self._promote_object(gao_to_return)
             return gao_to_return
         return None
-
-    def add_backup_accessible_object(self, obj: GenericAccessibleObject) -> None:
-        """Add a backup accessible object.
-
-        Args:
-            obj: The accessible object
-        """
-        self._add_to_index(obj)
-        self._backup_accessible_objects.add(obj)
 
 
 
