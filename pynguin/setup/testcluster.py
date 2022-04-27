@@ -265,12 +265,20 @@ class ExpandableTestCluster(FullTestCluster):
         self._backup_accessible_objects: OrderedSet[
             GenericAccessibleObject
         ] = OrderedSet()
+        self._backup_dependency_map : Dict[GenericAccessibleObject, List[type]] = {}
         self._name_idx : Dict[str, List[GenericAccessibleObject]] = {}
+        self._module_aliases : Dict[str, str] = {}
 
+    def _add_module_alias(self, orig_module_name: str, alias_in_file: str):
+        """
+        Keep track of module aliases
+        """
+        self._module_aliases[orig_module_name] = alias_in_file
 
     def _add_to_index(self, func: GenericAccessibleObject):
         """Adds the function func to the index of names -> GAO mappings.
         """
+        #TODO(!!!) also qualify with imported module names?
         if func.is_constructor():
             func: GenericConstructor
             func_name = func.generated_type().__name__
@@ -285,8 +293,10 @@ class ExpandableTestCluster(FullTestCluster):
                 self._name_idx[func_name].append(func)
             else:
                 self._name_idx[func_name] = [func]
-        #TODO(!!!) Implement for methods? Do we have issues with methods?
-        #TODO(!!!) should we qualify with imported module names?
+        elif func.is_method():
+            # Assumedly methods should always be called in a qualified way,
+            # so the deserializer should be able to find them
+            pass
 
 
     def _promote_object(self, func: GenericAccessibleObject):
@@ -411,7 +421,7 @@ class FilteredTestCluster(TestCluster):
         code_object_id: int | None = target.code_object_id
         while code_object_id is not None:
             if (
-                acc := self._code_object_id_to_accessible_object.get(
+                acc := self._code_object_idto_accessible_object.get(
                     code_object_id, None
                 )
             ) is not None:

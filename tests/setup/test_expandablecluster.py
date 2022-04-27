@@ -4,6 +4,8 @@
 #
 #  SPDX-License-Identifier: LGPL-3.0-or-later
 #
+# This file tests the "expandable" test cluster
+# TODO: no tests for name collisions yet.
 
 import os
 from typing import cast
@@ -25,39 +27,108 @@ from pynguin.utils.generic.genericaccessibleobject import (
     GenericMethod,
 )
 
-def test_can_retrieve_constructor():
-    cluster: ExpandableTestCluster = TestClusterGenerator(
-        "tests.fixtures.cluster.complex_dependencies", True
-    ).generate_cluster()
-    gao = cluster.try_resolve_call('SomeClass')
-    assert gao is not None, f'{gao}'
 
-def test_accessible_expand_with_types():
-    cluster : ExpandableTestCluster = TestClusterGenerator(
-        "tests.fixtures.cluster.typeless_dependencies", True
-    ).generate_cluster()
-    assert isinstance(cluster, ExpandableTestCluster)
-    assert len(cluster.accessible_objects_under_test) == 2
-    class_names = [c.__name__ for c in cluster.get_all_generatable_types()]
-    assert 'SomeClass' in class_names, f'{class_names}'
-    assert 'SomeOtherType' not in class_names, f'SomeOtherType already in {class_names}'
-    cluster.try_resolve_call("SomeOtherType")
-    assert len(cluster.accessible_objects_under_test) == 6
-    class_names = [c.__name__ for c in cluster.get_all_generatable_types()]
-    assert 'SomeOtherType' in class_names, f'SomeOtherType not in {class_names}'
-    assert 'YetAnotherType' in class_names, f'YetAnotherType not in {class_names}'
+# Retrieve GenericAccessibleObjects for function/constructors *in the test module*
 
-def test_accessible_expand_without_types_in_import():
-    cluster : ExpandableTestCluster = TestClusterGenerator(
-        "tests.fixtures.cluster.typeless_dependencies", True
-    ).generate_cluster()
-    assert isinstance(cluster, ExpandableTestCluster)
-    assert len(cluster.accessible_objects_under_test) == 2
-    class_names = [c.__name__ for c in cluster.get_all_generatable_types()]
-    assert 'SomeClass' in class_names, f'{class_names}'
-    assert 'MyOtherType' not in class_names, f'MyOtherType already in {class_names}'
-    cluster.try_resolve_call("tests.fixtures.cluster.typeless_dependency.MyOtherType")
-    assert len(cluster.accessible_objects_under_test) == 4
-    class_names = [c.__name__ for c in cluster.get_all_generatable_types()]
-    assert 'MyOtherType' in class_names, f'MyOtherType not in {class_names}'
+def test_can_retrieve_constructor_without_qualification():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a constructor when given only its class name.
+    """
+    pass
 
+def test_can_retrieve_function_without_qualification():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a high-level function (i.e. not a method) when given only its name.
+    """
+    pass
+
+# Retrieve GenericAccessibleObjects for constructors *imported as type hints*
+
+def test_can_retrieve_typehint_constructor_imported_from():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a constructor in a type hint, which is imported via a `from ... import ...`
+    statement.
+    """
+    # Check for qualified `module.constructor`
+    # Check for `constructor`
+    pass
+
+def test_can_retrieve_typehint_constructor_imported_as():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a constructor in a type hint, whose module is imported via ` import ... as ...`
+    """
+    # Check for qualified `module.constructor`
+    # Check for `constructor`
+    # Check for qualified `as_module.constructor`
+    pass
+
+def test_can_retrieve_typehint_constructor_imported():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a constructor in a type hint, whose module is imported via ` import ...`
+    """
+    # Check for qualified `module.constructor`
+    # Check for `constructor`
+    pass
+
+# Retrieve GenericAccesibleObjects for functions and constructors accessible via
+# imports, but which are not part of the original test cluster.
+
+def test_can_retrieve_constructor_imported_from():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a constructor which is imported via a `from ... import ...` statement.
+    """
+    # Check for qualified `module.constructor`
+    # Check for `constructor`
+    pass
+
+def test_can_retrieve_constructor_imported_as():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a constructor whose module is imported via ` import ... as ...`
+    """
+    # Check for qualified `module.constructor`
+    # Check for `constructor`
+    # Check for qualified `as_module.constructor`
+    pass
+
+def test_can_retrieve_constructor_imported():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a constructor, whose module is imported via ` import ...`
+    """
+    # Check for qualified `module.constructor`
+    # Check for `constructor`
+    pass
+
+
+def test_can_retrieve_function_imported_from():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a function which is imported via a `from ... import ...` statement.
+    """
+    # Check for qualified `module.function`
+    # Check for `function`
+    pass
+
+def test_can_retrieve_function_imported_as():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a function whose module is imported via ` import ... as ...`
+    """
+    # Check for qualified `module.function`
+    # Check for `function`
+    # Check for qualified `as_module.function`
+    pass
+
+def test_can_retrieve_function_imported():
+    """Checks whether `try_resolve_call` can retrieve the GenericAccessibleObject
+    for a function, whose module is imported via ` import ...`
+    """
+    # Check for qualified `module.function`
+    # Check for `function`
+    pass
+
+# Test that retrieving generic accessible objects retrieves their dependencies, if known
+def test_retrieve_gao_dependencies():
+    """Checks that when `try_resolve_call` retrieves a GenericAccessibleObject
+    with callable dependencies, those callable dependencies are added to the test cluster.
+    """
+    # Check for qualified `module.constructor`
+    # Check for `constructor`
+    pass
