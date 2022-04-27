@@ -105,6 +105,13 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
         self._logger.debug("Generating test cluster")
         self._logger.debug("Analyzing module %s", self._module_name)
         module = importlib.import_module(self._module_name)
+
+        if self._make_expandable_cluster:
+            for module_name, module_obj in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
+                # Add module aliases so we get all the names right in the first place
+                if module_name != module_obj.__name__:
+                    self._test_cluster.add_module_alias(module_obj.__name__, module_name)
+
         for _, klass in inspect.getmembers(module, class_in_module(self._module_name)):
             self._add_dependency(klass, 1, True)
 
@@ -130,32 +137,31 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
         # If we're making an expandable cluster, create the backup set of GAOs.
         if self._make_expandable_cluster:
 
-            pass
+
             self._test_cluster: ExpandableTestCluster
-            # Classes imported via `from ... import`
-            for _, klass in inspect.getmembers(module, class_not_in_module(self._module_name)):
-                self._add_dependency(klass, 1, False)
-
-            # Functions imported via `from ... import`
-            for function_name, funktion in inspect.getmembers(
-                module, function_not_in_module(self._module_name)
-            ):
-                generic_function = GenericFunction(
-                    funktion, self._inference.infer_type_info(funktion)[0], function_name
-                )
-                if self._is_protected(
-                    function_name
-                ) or self._discard_accessible_with_missing_type_hints(generic_function):
-                    self._logger.debug("Skip function %s", function_name)
-                    continue
-
-                self._logger.debug("Analyzing function %s", function_name)
-                self._test_cluster.add_backup_accessible_object(generic_function)
-                self._add_callable_dependencies(generic_function, 1)
+            # # Classes imported via `from ... import`
+            # for _, klass in inspect.getmembers(module, class_not_in_module(self._module_name)):
+            #     self._add_dependency(klass, 1, False)
+            #
+            # # Functions imported via `from ... import`
+            # for function_name, funktion in inspect.getmembers(
+            #     module, function_not_in_module(self._module_name)
+            # ):
+            #     generic_function = GenericFunction(
+            #         funktion, self._inference.infer_type_info(funktion)[0], function_name
+            #     )
+            #     if self._is_protected(
+            #         function_name
+            #     ) or self._discard_accessible_with_missing_type_hints(generic_function):
+            #         self._logger.debug("Skip function %s", function_name)
+            #         continue
+            #
+            #     self._logger.debug("Analyzing function %s", function_name)
+            #     self._test_cluster.add_backup_accessible_object(generic_function)
+            #     self._add_callable_dependencies(generic_function, 1)
 
             # Retrieve functions and classes in imported modules too
-            for module_name, module in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
-                # Add module alias
+            for module_name, module_obj in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
                 pass
 
         return self._test_cluster

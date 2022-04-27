@@ -269,7 +269,7 @@ class ExpandableTestCluster(FullTestCluster):
         self._name_idx : Dict[str, List[GenericAccessibleObject]] = {}
         self._module_aliases : Dict[str, str] = {}
 
-    def _add_module_alias(self, orig_module_name: str, alias_in_file: str):
+    def add_module_alias(self, orig_module_name: str, alias_in_file: str):
         """
         Keep track of module aliases
         """
@@ -278,25 +278,34 @@ class ExpandableTestCluster(FullTestCluster):
     def _add_to_index(self, func: GenericAccessibleObject):
         """Adds the function func to the index of names -> GAO mappings.
         """
-        #TODO(!!!) also qualify with imported module names?
         if func.is_constructor():
             func: GenericConstructor
             func_name = func.generated_type().__name__
-            if func_name in self._name_idx:
-                self._name_idx[func_name].append(func)
-            else:
-                self._name_idx[func_name] = [func]
+            module_name = func.generated_type().__module__
+            func_names = [func_name, module_name + "." + func_name]
+            if module_name in self._module_aliases:
+                qual_module_name = self._module_aliases[module_name]
+                func_names.append(qual_module_name+ "." + func_name)
+
         elif func.is_function():
             func: GenericFunction
             func_name = func.function_name
+            callable = func.callable
+            module_name = callable.__module__
+            func_names = [func_name, module_name + "." + func_name]
+            if module_name in self._module_aliases:
+                qual_module_name = self._module_aliases[module_name]
+                func_names.append(qual_module_name+ "." + func_name)
+        else:
+            # Assumedly methods should always be called in a qualified way,
+            # so the deserializer should be able to find them
+           func_names = []
+
+        for func_name in func_names:
             if func_name in self._name_idx:
                 self._name_idx[func_name].append(func)
             else:
                 self._name_idx[func_name] = [func]
-        elif func.is_method():
-            # Assumedly methods should always be called in a qualified way,
-            # so the deserializer should be able to find them
-            pass
 
 
     def _promote_object(self, func: GenericAccessibleObject):
