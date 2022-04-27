@@ -12,6 +12,8 @@ import enum
 import importlib
 import inspect
 import logging
+import os
+import re
 import typing
 
 from typing_inspect import get_args, is_union_type
@@ -41,6 +43,17 @@ from pynguin.utils.type_utils import (
     is_primitive_type,
     is_type_unknown, function_not_in_module, class_not_in_module,
 )
+
+def _retrieve_plain_imports(filename: str):
+    if os.path.exists(filename):
+        lines = open(filename).read().split('\n')
+        import_lines = [line for line in lines if line.startswith('import')]
+        import_re = re.compile('^import ((?:[a-zA-Z_][a-zA-Z_0-9]*)(?:\.[a-zA-Z_][a-zA-Z_0-9]*)*)$')
+        matches = [import_re.match(line) for line in import_lines]
+        directly_imported_modules = [m.group(1) for m in matches if m is not None]
+        return directly_imported_modules
+    else:
+        return []
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -121,9 +134,16 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
             self._test_cluster.set_backup_mode(True)
             self.add_classes_and_functions(self._module_name, module, False, False, 1)
 
-            # Retrieve functions and classes in imported modules too
-            for _, module_obj in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
-                module_name = module_obj.__name__
+            # Retrieve functions and classes in imported modules too. First, aliased modules:
+            for module_name, module_obj in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
+                if module_name != module_obj.__name__:
+                    self.add_classes_and_functions(module_obj.__name__, module_obj, False, True, 2)
+
+            # Modules that aren't aliased are tricky if they're qualified, because only the parent
+            # module shows up in inspection. So retrieve the modules directly.
+            plain_imported_modules = _retrieve_plain_imports(module.__file__)
+            for module_name in plain_imported_modules:
+                module_obj = importlib.import_module(module_name)
                 self.add_classes_and_functions(module_name, module_obj, False, True, 2)
 
             self._resolve_dependencies_recursive()
@@ -150,6 +170,7 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
 
         for _, klass in inspect.getmembers(module_obj, module_check(module_name)):
             self._add_dependency(klass, recursion_lvl, under_test)
+
         for function_name, funktion in inspect.getmembers(
             module_obj, function_check(module_name)
         ):
