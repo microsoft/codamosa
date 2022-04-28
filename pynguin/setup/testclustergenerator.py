@@ -200,9 +200,11 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
             recursion_level: The current level of recursion of the search
         """
         self._logger.debug("Find dependencies for %s", call)
+
         if recursion_level > config.configuration.type_inference.max_cluster_recursion:
             self._logger.debug("Reached recursion limit. No more dependencies added.")
             return
+
         for param_name, type_ in call.inferred_signature.parameters.items():
             self._logger.debug("Resolving '%s' (%s)", param_name, type_)
             types = {type_}

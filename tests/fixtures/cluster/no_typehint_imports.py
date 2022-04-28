@@ -9,7 +9,7 @@
 from tests.fixtures.cluster.no_dependencies import test_function, Test
 import tests.fixtures.cluster.another_dependency as ad
 import tests.fixtures.cluster.dependency
-import tests.fixtures.cluster.typing_parameters
+import tests.fixtures.cluster.typing_parameters_legacy
 import tests.fixtures.cluster.complex_dependency as cd
 
 def foo(t):

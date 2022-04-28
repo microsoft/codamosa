@@ -7,6 +7,7 @@
 """Provides a test cluster."""
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import typing
@@ -263,11 +264,11 @@ class ExpandableTestCluster(FullTestCluster):
         """Create new test cluster."""
         super().__init__()
         self._backup_accessible_objects: OrderedSet[
-            GenericAccessibleObject
+            GenericCallableAccessibleObject
         ] = OrderedSet()
         self._backup_mode = False
-        self._backup_dependency_map : Dict[GenericAccessibleObject, List[type]] = {}
-        self._name_idx : Dict[str, List[GenericAccessibleObject]] = {}
+        self._backup_dependency_map : Dict[GenericCallableAccessibleObject, List[type]] = {}
+        self._name_idx : Dict[str, List[GenericCallableAccessibleObject]] = {}
         self._module_aliases : Dict[str, str] = {}
 
     def set_backup_mode(self, mode: bool):
@@ -279,7 +280,7 @@ class ExpandableTestCluster(FullTestCluster):
         """
         self._module_aliases[orig_module_name] = alias_in_file
 
-    def _add_to_index(self, func: GenericAccessibleObject):
+    def _add_to_index(self, func: GenericCallableAccessibleObject):
         """Adds the function func to the index of names -> GAO mappings.
         """
         if func.is_constructor():
@@ -290,7 +291,6 @@ class ExpandableTestCluster(FullTestCluster):
             if module_name in self._module_aliases:
                 qual_module_name = self._module_aliases[module_name]
                 func_names.append(qual_module_name+ "." + func_name)
-
         elif func.is_function():
             func: GenericFunction
             func_name = func.function_name
@@ -300,9 +300,12 @@ class ExpandableTestCluster(FullTestCluster):
             if module_name in self._module_aliases:
                 qual_module_name = self._module_aliases[module_name]
                 func_names.append(qual_module_name+ "." + func_name)
+        elif func.is_method():
+            func: GenericMethod
+            func_name = func.method_name
+            owner_name = func.owner.__name__
+            func_names = [owner_name + "." + func_name]
         else:
-            # Assumedly methods should always be called in a qualified way,
-            # so the deserializer should be able to find them
            func_names = []
 
         for func_name in func_names:
@@ -312,24 +315,54 @@ class ExpandableTestCluster(FullTestCluster):
                 self._name_idx[func_name] = [func]
 
 
-    def _promote_object(self, func: GenericAccessibleObject):
+    def _promote_object(self, func: GenericCallableAccessibleObject):
         """
         Promotes the object to go into generators/modifiers.
         """
         # Otherwise add_generator and add_modifier will do nothing
         assert self._backup_mode is False
-
         if func in self._backup_accessible_objects:
+            # To prevent recursion when adding dependencies, remove this from backup objects.
+            self._backup_accessible_objects.remove(func)
+
+            # Add it as a generator if it can generate types
             self.add_generator(func)
+
+            # Add it as a modifier if it is a method
             if func.is_method():
                 func: GenericMethod
                 modified_type = func.owner
                 self.add_modifier(modified_type, func)
 
-            # TODO: do we also add it to objects under test? Can we dynamically observe its return type
-            # This is not really what we want to do. really we only want to add it as a generator,
-            # but of the correct type. I think that might require dynamically observing
-            #self.accessible_objects_under_test.add(func)
+            # Add dependencies... there is some repetition here with the work done in
+            # testclustergenerator.py
+
+            # Promote any types in the type signature to the test cluster
+            signature = func.inferred_signature
+            for param_name, type_ in signature.parameters.items():
+                types = {type_}
+                if is_union_type(type_):
+                    types = set(get_args(type_))
+                for elem in types:
+                    if inspect.isclass(elem):
+                        assert elem
+                        # The constructor should be available via the name of the class.
+                        self.try_resolve_call(elem.__name__)
+
+            # Also retrieve all the methods for a constructor
+            if func.is_constructor():
+                func : GenericConstructor
+                type_under_test = func.owner
+                type_name = type_under_test.__name__
+                for method_name, method in inspect.getmembers(type_under_test, inspect.isfunction):
+                    if not method_name == '__init__':
+                        self.try_resolve_call(type_name + '.' + method_name)
+
+
+            # TODO: do we also add it to objects under test? No, we want to add it as a generator,
+            # but of the correct type. I think that might require dynamically observing types...
+            # self.accessible_objects_under_test.add(func)
+
 
     def add_generator(self, generator: GenericAccessibleObject) -> None:
         """Add the given accessible as a generator, and keep track of its name.
@@ -340,6 +373,8 @@ class ExpandableTestCluster(FullTestCluster):
         self._add_to_index(generator)
         if not self._backup_mode:
             super().add_generator(generator)
+        else:
+            self._backup_accessible_objects.add(generator)
 
     def add_accessible_object_under_test(self, obj: GenericAccessibleObject) -> None:
         """Add accessible object to the objects under test, and keep track of its name.
@@ -350,6 +385,8 @@ class ExpandableTestCluster(FullTestCluster):
         self._add_to_index(obj)
         if not self._backup_mode:
             super().add_accessible_object_under_test(obj)
+        else:
+            self._backup_accessible_objects.add(obj)
 
     def add_modifier(self, type_: type, obj: GenericAccessibleObject) -> None:
         """Add a modifier.
@@ -364,6 +401,8 @@ class ExpandableTestCluster(FullTestCluster):
         self._add_to_index(obj)
         if not self._backup_mode:
             super().add_modifier(type_, obj)
+        else:
+            self._backup_accessible_objects.add(obj)
 
     def try_resolve_call(self, call_name: str) -> Optional[GenericAccessibleObject]:
         """Tries to resolve the function in call_name to an accessible object.

@@ -213,13 +213,13 @@ def test_can_retrieve_function_imported():
         f'Wrong object: {noqualified}'
 
     # Check for qualified `module.function`
-    qualified = expandable_cluster.try_resolve_call('tests.fixtures.cluster.typing_parameters.method_with_optional')
+    qualified = expandable_cluster.try_resolve_call('tests.fixtures.cluster.typing_parameters_legacy.method_with_optional')
     assert qualified.is_function() and qualified.function_name == 'method_with_optional', \
         f'Wrong object: {qualified}'
 
 # Test that retrieving generic accessible objects retrieves their dependencies, if known
-def test_retrieve_gao_dependencies():
-    """Checks that when `try_resolve_call` retrieves a GenericAccessibleObject
+def test_retrieve_gao_constructor_dependencies():
+    """Checks that when `try_resolve_call` retrieves a constructor
     with callable dependencies, those callable dependencies are added to the test cluster.
     """
     expandable_cluster: ExpandableTestCluster = TestClusterGenerator(
@@ -233,3 +233,19 @@ def test_retrieve_gao_dependencies():
     assert len(expandable_cluster.modifiers) == 2
     generateable_types = [t.__name__ for t in expandable_cluster.generators.keys()]
     assert 'SomeOtherType' in generateable_types and 'YetAnotherType' in generateable_types
+
+def test_retrieve_gao_function_dependencies():
+    """Checks that when `try_resolve_call` retrieves a constructor
+    with callable dependencies, those callable dependencies are added to the test cluster.
+    """
+    expandable_cluster: ExpandableTestCluster = TestClusterGenerator(
+        'tests.fixtures.cluster.no_typehint_imports', True).generate_cluster()
+    # At first it should only contain the function foo
+    assert len(expandable_cluster.accessible_objects_under_test) == 1
+    assert len(expandable_cluster.generators) == 0, f'{expandable_cluster.generators}'
+    assert len(expandable_cluster.modifiers) == 0
+    gao = expandable_cluster.try_resolve_call('tests.fixtures.cluster.typing_parameters_legacy.method_with_union')
+    assert len(expandable_cluster.generators) == 1
+    assert len(expandable_cluster.modifiers) == 0
+    generateable_types = [t.__name__ for t in expandable_cluster.generators.keys()]
+    assert ['SomeArgumentType'] == generateable_types
