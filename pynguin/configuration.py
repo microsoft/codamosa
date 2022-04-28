@@ -265,6 +265,10 @@ class SeedingConfiguration:
     sample_with_replacement: bool = True
     """Should we allow sampling with replacement from previously existing testcases?"""
 
+    allow_expandable_cluster: bool = False
+    """Should we create an 'expandable' test cluster, which we can query for new functions
+    at seeding/test time?"""
+
     remove_testcases_without_coverage: bool = True
     """Should we remove seeded test cases that don't have any coverage of the test module?"""
 

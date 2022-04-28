@@ -404,7 +404,7 @@ class ExpandableTestCluster(FullTestCluster):
         else:
             self._backup_accessible_objects.add(obj)
 
-    def try_resolve_call(self, call_name: str) -> Optional[GenericAccessibleObject]:
+    def try_resolve_call(self, call_name: str) -> Optional[GenericCallableAccessibleObject]:
         """Tries to resolve the function in call_name to an accessible object.
 
         If call_name is found in the backup set of functions, it will be upgraded to the

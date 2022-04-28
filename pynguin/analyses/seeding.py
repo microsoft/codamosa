@@ -44,7 +44,7 @@ from pynguin.utils.type_utils import is_assertable
 if TYPE_CHECKING:
     import pynguin.testcase.testcase as tc
     import pynguin.testcase.variablereference as vr
-    from pynguin.setup.testcluster import TestCluster
+    from pynguin.setup.testcluster import TestCluster, ExpandableTestCluster
 
 Types = Union[float, int, str]
 logger = logging.getLogger(__name__)
@@ -538,7 +538,7 @@ def create_assign_stmt(
         new_stmt = create_stmt_from_unaryop(value, testcase)
     elif isinstance(value, ast.Call):
         new_stmt = create_stmt_from_call(
-            value, testcase, callable_objects_under_test, ref_dict
+            value, testcase, callable_objects_under_test, ref_dict, test_cluster
         )
     elif isinstance(value, (ast.List, ast.Set, ast.Dict, ast.Tuple)):
         new_stmt = create_stmt_from_collection(
@@ -761,6 +761,7 @@ def create_stmt_from_call(
     testcase: tc.TestCase,
     objs_under_test: set[GenericCallableAccessibleObject],
     ref_dict: dict[str, vr.VariableReference],
+    test_cluster: TestCluster
 ) -> stmt.VariableCreatingStatement | None:
     """Creates the corresponding statement from an ast.call node. Depending on the call,
     this can be a GenericConstructor, GenericMethod or GenericFunction statement.
@@ -775,6 +776,13 @@ def create_stmt_from_call(
     Returns:
         The corresponding statement.
     """
+    if config.configuration.seeding.allow_expandable_cluster:
+        test_cluster: ExpandableTestCluster
+        logger.info(f"Trying to find in expandable cluster")
+        gen_callable = test_cluster.try_resolve_call(ast.unparse(call.func))
+        if gen_callable is not None:
+            return assemble_stmt_from_gen_callable(testcase, gen_callable, call, ref_dict)
+
     try:
         call.func.attr  # type: ignore
     except AttributeError:
@@ -782,7 +790,6 @@ def create_stmt_from_call(
             call, testcase, objs_under_test, ref_dict
         )
     gen_callable = find_gen_callable(call, objs_under_test, ref_dict)
-    #TODO(clemieux) try to resolve function more
     if gen_callable is None:
         logger.info(f"No such function found: {ast.unparse(call.func)}")
         return None
