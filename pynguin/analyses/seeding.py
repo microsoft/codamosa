@@ -1114,9 +1114,9 @@ def try_generating_specific_function(
             dict_node, testcase, objs_under_test, ref_dict
         )
     # TODO(clemieux): add case for other generic callables from __builtins__
-    if func_id in __builtins__.__dict__:
+    if func_id in __builtins__:
         logger.debug(f"Trying to parse builtin function: {func_id}")
-        # TODO: probably need to add a BuiltInStatement in order to support this
+        # TODO(clemieux): probably need to add a BuiltInStatement in order to support this
         return None
     return None
 
