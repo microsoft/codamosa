@@ -45,5 +45,4 @@ class PyTestExporter(AbstractTestExporter):
         )
         functions = AbstractTestExporter._create_functions(asts, False)
         module = ast.Module(body=import_nodes + functions, type_ignores=[])
-        return AbstractTestExporter._save_ast_to_string( module)
-
+        return AbstractTestExporter._save_ast_to_string(module)

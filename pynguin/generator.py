@@ -26,7 +26,7 @@ import os
 import sys
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import pynguin.analyses.seeding as seeding  # pylint: disable=consider-using-from-import
 import pynguin.assertion.assertiongenerator as ag
@@ -101,7 +101,8 @@ def run_pynguin() -> ReturnCode:
 
 def _setup_test_cluster() -> TestCluster | None:
     test_cluster = TestClusterGenerator(
-        config.configuration.module_name, config.configuration.seeding.allow_expandable_cluster
+        config.configuration.module_name,
+        config.configuration.seeding.allow_expandable_cluster,
     ).generate_cluster()
     if test_cluster.num_accessible_objects_under_test() == 0:
         _LOGGER.error("SUT contains nothing we can test.")
@@ -181,13 +182,17 @@ def _setup_constant_seeding_collection() -> None:
         )
 
 
-def _setup_initial_population_seeding(test_cluster: TestCluster, executor: TestCaseExecutor):
+def _setup_initial_population_seeding(
+    test_cluster: TestCluster, executor: Optional[TestCaseExecutor] = None
+):
     """Collect and parse tests for seeding the initial population"""
     if config.configuration.seeding.initial_population_seeding:
         _LOGGER.info("Collecting and parsing provided testcases.")
         seeding.initialpopulationseeding.test_cluster = test_cluster
         seeding.initialpopulationseeding.executor = executor
-        seeding.initialpopulationseeding.sample_with_replacement = config.configuration.seeding.sample_with_replacement
+        seeding.initialpopulationseeding.sample_with_replacement = (
+            config.configuration.seeding.sample_with_replacement
+        )
         seeding.initialpopulationseeding.collect_testcases(
             config.configuration.seeding.initial_population_data
         )

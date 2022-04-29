@@ -266,11 +266,16 @@ class SeedingConfiguration:
     """Should we allow sampling with replacement from previously existing testcases?"""
 
     allow_expandable_cluster: bool = False
-    """Should we create an 'expandable' test cluster, which we can query for new functions
-    at seeding/test time?"""
+    """Should we create an 'expandable' test cluster, which we can query for new
+    functions at seeding/test time?"""
 
-    remove_testcases_without_coverage: bool = True
-    """Should we remove seeded test cases that don't have any coverage of the test module?"""
+    remove_testcases_without_coverage: bool = False
+    """Should we remove seeded test cases that don't have any coverage of the test
+     module?"""
+
+    include_partially_parsable: bool = False
+    """If true, keep the parsable parts of seed test cases. If False, only retain test
+    cases that are fully parsable. """
 
     seeded_testcases_reuse_probability: float = 0.9
     """Probability of using seeded testcases when initial population seeding is

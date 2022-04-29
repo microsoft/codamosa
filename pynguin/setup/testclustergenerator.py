@@ -19,7 +19,11 @@ import typing
 from typing_inspect import get_args, is_union_type
 
 import pynguin.configuration as config
-from pynguin.setup.testcluster import FullTestCluster, TestCluster, ExpandableTestCluster
+from pynguin.setup.testcluster import (
+    ExpandableTestCluster,
+    FullTestCluster,
+    TestCluster,
+)
 from pynguin.typeinference import typeinference
 from pynguin.typeinference.nonstrategy import NoTypeInferenceStrategy
 from pynguin.typeinference.strategy import TypeInferenceStrategy
@@ -32,28 +36,32 @@ from pynguin.utils.generic.genericaccessibleobject import (
     GenericEnum,
     GenericFunction,
     GenericMethod,
-    GenericField,
-    GenericStaticModuleField,
-    GenericStaticField
 )
 from pynguin.utils.type_utils import (
     class_in_module,
+    class_not_in_module,
     function_in_module,
+    function_not_in_module,
     get_class_that_defined_method,
     is_primitive_type,
-    is_type_unknown, function_not_in_module, class_not_in_module,
+    is_type_unknown,
 )
 
-def _retrieve_plain_imports(filename: str):
-    if os.path.exists(filename):
-        lines = open(filename).read().split('\n')
-        import_lines = [line for line in lines if line.startswith('import')]
-        import_re = re.compile('^import ((?:[a-zA-Z_][a-zA-Z_0-9]*)(?:\.[a-zA-Z_][a-zA-Z_0-9]*)*)$')
-        matches = [import_re.match(line) for line in import_lines]
-        directly_imported_modules = [m.group(1) for m in matches if m is not None]
-        return directly_imported_modules
-    else:
-        return []
+
+def _retrieve_plain_imports(filename: typing.Optional[str]):
+    if filename is not None and os.path.exists(filename):
+        # pylint: disable=unspecified-encoding
+        with open(filename) as open_file:
+            lines = open_file.read().split("\n")
+            import_lines = [line for line in lines if line.startswith("import")]
+            import_re = re.compile(
+                r"^import ((?:[a-zA-Z_][a-zA-Z_0-9]*)"
+                r"(?:\.[a-zA-Z_][a-zA-Z_0-9]*)*)\s*(?:#.*)?$"
+            )
+            matches = [import_re.match(line) for line in import_lines]
+            directly_imported_modules = [m.group(1) for m in matches if m is not None]
+            return directly_imported_modules
+    return []
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -79,10 +87,10 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
         self._analyzed_classes: set[type] = set()
         self._dependencies_to_solve: set[DependencyPair] = set()
         self._make_expandable_cluster = make_expandable
-        if self._make_expandable_cluster:
-            self._test_cluster: ExpandableTestCluster = ExpandableTestCluster()
+        if not self._make_expandable_cluster:
+            self._test_cluster = FullTestCluster()
         else:
-            self._test_cluster: FullTestCluster = FullTestCluster()
+            self._test_cluster = ExpandableTestCluster()
         self._inference = typeinference.TypeInference(
             strategies=self._initialise_type_inference_strategies()
         )
@@ -120,50 +128,64 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
         module = importlib.import_module(self._module_name)
 
         if self._make_expandable_cluster:
-            for module_name, module_obj in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
+            for module_name, module_obj in inspect.getmembers(module, inspect.ismodule):
                 # Add module aliases so we get all the names right in the first place
                 if module_name != module_obj.__name__:
-                    self._test_cluster.add_module_alias(module_obj.__name__, module_name)
+                    self._test_cluster.add_module_alias(  # type: ignore
+                        module_obj.__name__, module_name
+                    )
 
         self.add_classes_and_functions(self._module_name, module, True, True, 1)
         self._resolve_dependencies_recursive()
 
         # If we're making an expandable cluster, create the backup set of GAOs.
         if self._make_expandable_cluster:
-            self._test_cluster: ExpandableTestCluster
-            self._test_cluster.set_backup_mode(True)
+            self._test_cluster.set_backup_mode(True)  # type: ignore
             self.add_classes_and_functions(self._module_name, module, False, False, 1)
 
-            # Retrieve functions and classes in imported modules too. First, aliased modules:
-            for module_name, module_obj in inspect.getmembers(module, lambda x: inspect.ismodule(x)):
+            # Retrieve functions and classes in imported modules too.
+            # First, aliased modules:
+            for module_name, module_obj in inspect.getmembers(module, inspect.ismodule):
                 if module_name != module_obj.__name__:
-                    self.add_classes_and_functions(module_obj.__name__, module_obj, False, True, 2)
+                    self.add_classes_and_functions(
+                        module_obj.__name__, module_obj, False, True, 2
+                    )
 
-            # Modules that aren't aliased are tricky if they're qualified, because only the parent
-            # module shows up in inspection. So retrieve the modules directly.
+            # Modules that aren't aliased are tricky if they're qualified,
+            # because only the parent module shows up in inspection.
+            # So retrieve the modules directly.
             plain_imported_modules = _retrieve_plain_imports(module.__file__)
             for module_name in plain_imported_modules:
                 module_obj = importlib.import_module(module_name)
                 self.add_classes_and_functions(module_name, module_obj, False, True, 2)
 
             self._resolve_dependencies_recursive()
-            self._test_cluster.set_backup_mode(False)
+            self._test_cluster.set_backup_mode(False)  # type: ignore
         return self._test_cluster
 
-    def add_classes_and_functions(self, module_name: str, module_obj, under_test: bool, from_module: bool,
-                                  recursion_lvl : int):
-        """Adds all the classes and functions from the module_obj with name module_name to the test cluster,
-        if from_module is True, only keep the ones defined in this module; if from_module is false, only
-        keep the ones imported by but not defined in this module.
+    # pylint: disable=too-many-arguments
+    def add_classes_and_functions(
+        self,
+        module_name: str,
+        module_obj,
+        under_test: bool,
+        from_module: bool,
+        recursion_lvl: int,
+    ):
+        """Adds all the classes and functions from the module_obj with name module_name
+        to the test cluster,if from_module is True, only keep the ones defined in this
+        module; if from_module is false, only keep the ones imported by but not defined
+         in this module.
 
         Args:
             module_name: the name of the module
             module_obj: the module object
-            under_test: should functions/methods/constructed be added to generic accessibles under test?
-            from_module: if True, filter to classes/functions defined in the module; if False, filter to
-            classes/functions defined out of the module.
-            recursion_lvl: the level of recursion (1 if this is the module under test; 2 if it's already an imported
-            module)
+            under_test: should functions/methods/constructed be added to generic
+                        accessibles under test?
+            from_module: if True, filter to classes/functions defined in the module;
+                    if False, filter to classes/functions defined out of the module.
+            recursion_lvl: the level of recursion (1 if this is the module under test;
+                       2 if it's already an importedmodule)
         """
         module_check = class_in_module if from_module else class_not_in_module
         function_check = function_in_module if from_module else function_not_in_module

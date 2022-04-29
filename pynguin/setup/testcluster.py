@@ -12,7 +12,7 @@ import json
 import logging
 import typing
 from abc import ABC, abstractmethod
-from typing import Any, Optional, List, Dict
+from typing import Any, Dict, List, Optional
 
 from ordered_set import OrderedSet
 from typing_inspect import get_args, is_union_type
@@ -21,7 +21,8 @@ from pynguin.instrumentation.instrumentation import CODE_OBJECT_ID_KEY
 from pynguin.utils import randomness, type_utils
 from pynguin.utils.exceptions import ConstructionFailedException
 from pynguin.utils.generic.genericaccessibleobject import (
-    GenericCallableAccessibleObject, GenericMethod, GenericAccessibleObject, GenericConstructor, GenericFunction
+    GenericAccessibleObject,
+    GenericCallableAccessibleObject,
 )
 from pynguin.utils.type_utils import COLLECTIONS, PRIMITIVES
 
@@ -29,7 +30,6 @@ if typing.TYPE_CHECKING:  # Break circular dependencies at runtime.
     import pynguin.ga.computations as ff
     import pynguin.generation.algorithms.archive as arch
     from pynguin.testcase.execution import KnownData
-    from pynguin.utils.generic.genericaccessibleobject import GenericAccessibleObject
 
 
 class TestCluster(ABC):
@@ -252,6 +252,7 @@ class FullTestCluster(TestCluster):
             return None
         return select_from
 
+
 class ExpandableTestCluster(FullTestCluster):
     """A test cluster that keeps track of *all possible* method/constructors/functions
     in the module under test as well as *all* accessible modules under import.
@@ -264,49 +265,65 @@ class ExpandableTestCluster(FullTestCluster):
         """Create new test cluster."""
         super().__init__()
         self._backup_accessible_objects: OrderedSet[
-            GenericCallableAccessibleObject
+            GenericAccessibleObject
         ] = OrderedSet()
         self._backup_mode = False
-        self._backup_dependency_map : Dict[GenericCallableAccessibleObject, List[type]] = {}
-        self._name_idx : Dict[str, List[GenericCallableAccessibleObject]] = {}
-        self._module_aliases : Dict[str, str] = {}
+        self._backup_dependency_map: Dict[GenericAccessibleObject, List[type]] = {}
+        self._name_idx: Dict[str, List[GenericAccessibleObject]] = {}
+        self._module_aliases: Dict[str, str] = {}
 
     def set_backup_mode(self, mode: bool):
+        """
+        Put the test cluster in backup mode, that is, don't add anything to
+        generators/modifiers/test cluster, just keep track of the GAOs so they
+        can be retrieved later
+
+        Args:
+            mode: if True, turn on backup mode
+
+        """
         self._backup_mode = mode
 
     def add_module_alias(self, orig_module_name: str, alias_in_file: str):
-        """
-        Keep track of module aliases
+        """Keep track of module aliases
+
+        Args:
+            orig_module_name: the real name of the module
+            alias_in_file: what the module is imported `as` in the file
+
         """
         self._module_aliases[orig_module_name] = alias_in_file
 
-    def _add_to_index(self, func: GenericCallableAccessibleObject):
+    def _add_to_index(self, func: GenericAccessibleObject):
         """Adds the function func to the index of names -> GAO mappings.
+
+        Args:
+            func: function to add
         """
         if func.is_constructor():
-            func: GenericConstructor
-            func_name = func.generated_type().__name__
-            module_name = func.generated_type().__module__
+            generated_type = func.generated_type()
+            assert generated_type is not None
+            func_name = generated_type.__name__
+            module_name = generated_type.__module__
             func_names = [func_name, module_name + "." + func_name]
             if module_name in self._module_aliases:
                 qual_module_name = self._module_aliases[module_name]
-                func_names.append(qual_module_name+ "." + func_name)
+                func_names.append(qual_module_name + "." + func_name)
         elif func.is_function():
-            func: GenericFunction
-            func_name = func.function_name
-            callable = func.callable
-            module_name = callable.__module__
+            func_name = func.function_name  # type: ignore
+            callable_ = func.callable  # type: ignore
+            module_name = callable_.__module__
             func_names = [func_name, module_name + "." + func_name]
             if module_name in self._module_aliases:
                 qual_module_name = self._module_aliases[module_name]
-                func_names.append(qual_module_name+ "." + func_name)
+                func_names.append(qual_module_name + "." + func_name)
         elif func.is_method():
-            func: GenericMethod
-            func_name = func.method_name
+            assert func.owner is not None
+            func_name = func.method_name  # type: ignore
             owner_name = func.owner.__name__
             func_names = [owner_name + "." + func_name]
         else:
-           func_names = []
+            func_names = []
 
         for func_name in func_names:
             if func_name in self._name_idx:
@@ -314,15 +331,18 @@ class ExpandableTestCluster(FullTestCluster):
             else:
                 self._name_idx[func_name] = [func]
 
-
-    def _promote_object(self, func: GenericCallableAccessibleObject):
+    def _promote_object(self, func: GenericAccessibleObject):
         """
         Promotes the object to go into generators/modifiers.
+
+        Args:
+            func: function to promote
         """
         # Otherwise add_generator and add_modifier will do nothing
         assert self._backup_mode is False
         if func in self._backup_accessible_objects:
-            # To prevent recursion when adding dependencies, remove this from backup objects.
+            # To prevent recursion when adding dependencies, remove this
+            # from backup objects.
             self._backup_accessible_objects.remove(func)
 
             # Add it as a generator if it can generate types
@@ -330,16 +350,16 @@ class ExpandableTestCluster(FullTestCluster):
 
             # Add it as a modifier if it is a method
             if func.is_method():
-                func: GenericMethod
                 modified_type = func.owner
+                assert modified_type is not None
                 self.add_modifier(modified_type, func)
 
             # Add dependencies... there is some repetition here with the work done in
             # testclustergenerator.py
 
             # Promote any types in the type signature to the test cluster
-            signature = func.inferred_signature
-            for param_name, type_ in signature.parameters.items():
+            signature = func.inferred_signature  # type: ignore
+            for _, type_ in signature.parameters.items():
                 types = {type_}
                 if is_union_type(type_):
                     types = set(get_args(type_))
@@ -351,18 +371,19 @@ class ExpandableTestCluster(FullTestCluster):
 
             # Also retrieve all the methods for a constructor
             if func.is_constructor():
-                func : GenericConstructor
                 type_under_test = func.owner
+                assert type_under_test is not None
                 type_name = type_under_test.__name__
-                for method_name, method in inspect.getmembers(type_under_test, inspect.isfunction):
-                    if not method_name == '__init__':
-                        self.try_resolve_call(type_name + '.' + method_name)
+                for method_name, _ in inspect.getmembers(
+                    type_under_test, inspect.isfunction
+                ):
+                    if not method_name == "__init__":
+                        self.try_resolve_call(type_name + "." + method_name)
 
-
-            # TODO: do we also add it to objects under test? No, we want to add it as a generator,
-            # but of the correct type. I think that might require dynamically observing types...
+            # TODO: do we also add it to objects under test? No, we want to
+            # add it as a generator, but of the correct type. I think that
+            # might require dynamically observing types...
             # self.accessible_objects_under_test.add(func)
-
 
     def add_generator(self, generator: GenericAccessibleObject) -> None:
         """Add the given accessible as a generator, and keep track of its name.
@@ -404,11 +425,18 @@ class ExpandableTestCluster(FullTestCluster):
         else:
             self._backup_accessible_objects.add(obj)
 
-    def try_resolve_call(self, call_name: str) -> Optional[GenericCallableAccessibleObject]:
+    def try_resolve_call(self, call_name: str) -> Optional[GenericAccessibleObject]:
         """Tries to resolve the function in call_name to an accessible object.
 
         If call_name is found in the backup set of functions, it will be upgraded to the
         set of testable objects (TODO: will it?)
+
+        Args:
+            call_name: the name of the function we are trying to resolve
+
+        Returns:
+            a GenericAccessibleObject matching `call_name`, or None if none is found.
+
         """
         if call_name in self._name_idx:
             # TODO(!!!): be smarter than just taking the first one?
@@ -416,7 +444,6 @@ class ExpandableTestCluster(FullTestCluster):
             self._promote_object(gao_to_return)
             return gao_to_return
         return None
-
 
 
 class FilteredTestCluster(TestCluster):
@@ -469,7 +496,7 @@ class FilteredTestCluster(TestCluster):
         code_object_id: int | None = target.code_object_id
         while code_object_id is not None:
             if (
-                acc := self._code_object_idto_accessible_object.get(
+                acc := self._code_object_id_to_accessible_object.get(
                     code_object_id, None
                 )
             ) is not None:

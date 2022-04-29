@@ -139,6 +139,5 @@ class RuntimeVariable(str, enum.Enum):
     # Parsed Statements in seeded initial test cases
     ParsedStatements = "ParsedStatements"
 
-
     def __repr__(self):
         return f"{self.name}"

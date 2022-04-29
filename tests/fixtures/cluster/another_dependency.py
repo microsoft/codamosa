@@ -10,5 +10,6 @@ class AnotherArgumentType:
     def __init__(self, needed_for_me: int):
         pass
 
+
 def a_function_to_call():
     pass

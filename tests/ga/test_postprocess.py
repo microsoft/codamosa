@@ -104,6 +104,7 @@ def test_remove_integration(constructor_mock):
         ("visit_set_statement", "_handle_collection_or_primitive"),
         ("visit_tuple_statement", "_handle_collection_or_primitive"),
         ("visit_dict_statement", "_handle_collection_or_primitive"),
+        ("visit_field_statement", "_handle_remaining"),
     ],
 )
 def test_all_statements(statement_type, func):
@@ -116,7 +117,6 @@ def test_all_statements(statement_type, func):
 @pytest.mark.parametrize(
     "statement_type",
     [
-        "visit_field_statement",
         "visit_assignment_statement",
     ],
 )

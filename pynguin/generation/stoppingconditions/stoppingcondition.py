@@ -299,4 +299,4 @@ class ImmediateStopCondition(StoppingCondition):
         pass
 
     def __str__(self):
-        return f"Stopped Immediately."
+        return "Stopped Immediately."
