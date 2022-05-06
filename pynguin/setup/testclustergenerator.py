@@ -288,7 +288,10 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
 
             if (
                 self._is_constructor(method_name)
-                or not self._is_method_defined_in_class(klass, method)
+                or (
+                    not self._is_method_defined_in_class(klass, method)
+                    and not self._make_expandable_cluster
+                )
                 or self._is_protected(method_name)
                 or self._discard_accessible_with_missing_type_hints(generic_method)
             ):
@@ -296,6 +299,20 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
                 # Constructors are handled elsewhere; inherited methods should not be
                 # part of the cluster, only overridden methods; private methods should
                 # neither be part of the cluster.
+                continue
+
+            if (
+                not self._is_method_defined_in_class(klass, method)
+                and self._make_expandable_cluster
+            ):
+                # If we're making an expandable cluster, keep track of methods not
+                # directly definedin the object under test as modifiers of this class.
+                self._test_cluster.set_backup_mode(True)  # type: ignore
+                self._test_cluster.add_modifier(klass, generic_method)
+                self._test_cluster.set_backup_mode(False)  # type: ignore
+                # TODO(clemieux): this doesn't keep track of callable dependencies...
+                # in most cases if it's a class we're directly inheriting, we should
+                # be importing that class and resolving the dependencies there.
                 continue
 
             self._test_cluster.add_generator(generic_method)

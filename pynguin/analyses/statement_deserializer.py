@@ -398,6 +398,17 @@ class StatementDeserializer:
             elif isinstance(obj, GenericFunction):
                 if call_name == obj.function_name:
                     return obj
+        # Last ditch effort to retrieve methods if we have an expandable clutser
+        if config.configuration.seeding.allow_expandable_cluster:
+            call_id = call.func.value.id  # type: ignore
+            if call_id in self._ref_dict:
+                var_type = self._ref_dict[call_id].type
+                method = self._test_cluster.try_resolve_method_call(  # type: ignore
+                    var_type, call_name
+                )
+                if method is not None:
+                    return method
+
         return None
 
     def assemble_stmt_from_gen_callable(

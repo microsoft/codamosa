@@ -277,6 +277,40 @@ def test_can_retrieve_function_imported():
     ), f"Wrong object: {qualified}"
 
 
+def test_can_retrieve_parent_method():
+    """Checks whether `try_resolve_call` can retrieve a method call for a method defined in
+    a parent class, if it's a special method (starting with __)
+    """
+    expandable_cluster: ExpandableTestCluster = TestClusterGenerator(
+        "tests.fixtures.cluster.inheritance", True
+    ).generate_cluster()
+    assert len(expandable_cluster.accessible_objects_under_test) == 5
+    assert "Bar" in [cls.__name__ for cls in expandable_cluster.modifiers.keys()]
+    bar_key = [
+        cls for cls in expandable_cluster.modifiers.keys() if cls.__name__ == "Bar"
+    ][0]
+    assert len(expandable_cluster.modifiers[bar_key]) == 1
+    expandable_cluster.try_resolve_method_call(bar_key, "iterator")
+    assert len(expandable_cluster.modifiers[bar_key]) == 2
+
+
+def test_can_retrieve_parent_method_special():
+    """Checks whether `try_resolve_call` can retrieve a method call for a method defined in
+    a parent class, if it's a special method (starting with __)
+    """
+    expandable_cluster: ExpandableTestCluster = TestClusterGenerator(
+        "tests.fixtures.cluster.overridden_inherited_methods", True
+    ).generate_cluster()
+    assert len(expandable_cluster.accessible_objects_under_test) == 5
+    assert "Bar" in [cls.__name__ for cls in expandable_cluster.modifiers.keys()]
+    bar_key = [
+        cls for cls in expandable_cluster.modifiers.keys() if cls.__name__ == "Bar"
+    ][0]
+    assert len(expandable_cluster.modifiers[bar_key]) == 1
+    expandable_cluster.try_resolve_method_call(bar_key, "__iter__")
+    assert len(expandable_cluster.modifiers[bar_key]) == 2
+
+
 # Test that retrieving generic accessible objects retrieves their dependencies, if known
 def test_retrieve_gao_constructor_dependencies():
     """Checks that when `try_resolve_call` retrieves a constructor

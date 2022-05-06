@@ -445,6 +445,26 @@ class ExpandableTestCluster(FullTestCluster):
             return gao_to_return
         return None
 
+    def try_resolve_method_call(
+        self, obj_type: type, call_name: str
+    ) -> Optional[GenericAccessibleObject]:
+        """Tries to resolve a method call to an accessible object.
+
+        Args:
+            obj_type: the type we are looking for methods of
+            call_name: the name of the method we are trying to resolve
+
+        Returns:
+            a GenericMethod matching `call_name`, or None if none is found.
+
+        """
+        idx = obj_type.__name__ + "." + call_name
+        if idx in self._name_idx:
+            gao_to_return = self._name_idx[idx][0]
+            self._promote_object(gao_to_return)
+            return gao_to_return
+        return None
+
 
 class FilteredTestCluster(TestCluster):
     """A test cluster that wraps another test cluster.
