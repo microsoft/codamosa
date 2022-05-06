@@ -386,7 +386,7 @@ class _InitialPopulationSeeding:
         for root, _, files in os.walk(module_path):
             for name in files:
                 assert isinstance(name, str)
-                if module_name in name and "test_" in name:
+                if module_name in name and "test_" in name and name.endswith('.py'):
                     result.append(os.path.join(root, name))
                     break
         try:
@@ -463,17 +463,25 @@ class _InitialPopulationSeeding:
             assert self._executor is not None
             num_removed_test_cases = 0
             tracer = self._executor.tracer
+            exporter = PyTestExporter(wrap_code=False)
             import_coverage = compute_branch_coverage(
                 tracer.import_trace, tracer.get_known_data()
             )
-            for testcase in self._testcases:
+            idxs_to_remove = []
+            for idx, testcase in enumerate(self._testcases):
                 result: ExecutionResult = self._executor.execute(testcase)
                 coverage = compute_branch_coverage(
                     result.execution_trace, tracer.get_known_data()
                 )
                 if coverage <= import_coverage:
-                    self._testcases.remove(testcase)
-                num_removed_test_cases += 1
+                    idxs_to_remove.append(idx)
+                    num_removed_test_cases += 1
+                logger.debug(
+                    "Test case:\n %s\n has coverage %s vs. import coverage %f",
+                    exporter.export_sequences_to_str([testcase]),  # type: ignore
+                     coverage, import_coverage
+                )
+            self._testcases = [tc for idx, tc in enumerate(self._testcases) if idx not in idxs_to_remove]
             logger.info(
                 "Number test cases removed because they have no coverage: %s",
                 num_removed_test_cases,
@@ -554,14 +562,20 @@ class AstToTestCaseTransformer(ast.NodeVisitor):
                 logger.info("Failed to parse %s.", node.name)
 
     def visit_Assign(self, node: ast.Assign) -> Any:
-        if self._current_parsable:
+        if (
+            self._current_parsable
+            or config.configuration.seeding.include_partially_parsable
+        ):
             if self._deserializer.add_assign_stmt(node):
                 self._current_parsed_statements += 1
             else:
                 self._current_parsable = False
 
     def visit_Assert(self, node: ast.Assert) -> Any:
-        if self._current_parsable and self._create_assertions:
+        if (
+            self._current_parsable
+            or config.configuration.seeding.include_partially_parsable
+        ) and self._create_assertions:
             self._deserializer.add_assert_stmt(node)
 
     @property

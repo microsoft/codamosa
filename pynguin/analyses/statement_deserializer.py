@@ -431,6 +431,10 @@ class StatementDeserializer:
                 var_refs,
             )
         if isinstance(gen_callable, GenericMethod):
+            try:
+                self._ref_dict[call.func.value.id]
+            except (KeyError, AttributeError):
+                return None
             return stmt.MethodStatement(
                 self._testcase,
                 gen_callable,
@@ -523,7 +527,7 @@ class StatementDeserializer:
             elif isinstance(elem, ast.Name):
                 try:
                     coll_elems.append(self._ref_dict[elem.id])
-                except AttributeError:
+                except (KeyError, AttributeError):
                     return None
             else:
                 return None
