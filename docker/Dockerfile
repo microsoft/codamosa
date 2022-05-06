@@ -26,6 +26,7 @@ ENV PYTHONUNBUFFERED 1
 
 COPY . .
 
+RUN pip install --upgrade pip
 RUN pip install poetry==$POETRY_VERSION \
     && poetry config virtualenvs.create false \
     && poetry build
