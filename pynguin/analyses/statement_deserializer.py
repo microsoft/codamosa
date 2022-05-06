@@ -334,7 +334,7 @@ class StatementDeserializer:
             The corresponding statement.
         """
         if config.configuration.seeding.allow_expandable_cluster:
-            logger.info("Trying to find an expandable cluster")
+            logger.info("Trying to find in expandable cluster")
             gen_callable = self._test_cluster.try_resolve_call(  # type: ignore
                 ast.unparse(call.func)
             )
@@ -432,7 +432,7 @@ class StatementDeserializer:
             )
         if isinstance(gen_callable, GenericMethod):
             try:
-                self._ref_dict[call.func.value.id]
+                self._ref_dict[call.func.value.id]  # type: ignore
             except (KeyError, AttributeError):
                 return None
             return stmt.MethodStatement(

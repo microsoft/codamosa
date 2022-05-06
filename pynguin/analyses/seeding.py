@@ -386,7 +386,7 @@ class _InitialPopulationSeeding:
         for root, _, files in os.walk(module_path):
             for name in files:
                 assert isinstance(name, str)
-                if module_name in name and "test_" in name and name.endswith('.py'):
+                if module_name in name and "test_" in name and name.endswith(".py"):
                     result.append(os.path.join(root, name))
                     break
         try:
@@ -478,10 +478,15 @@ class _InitialPopulationSeeding:
                     num_removed_test_cases += 1
                 logger.debug(
                     "Test case:\n %s\n has coverage %s vs. import coverage %f",
-                    exporter.export_sequences_to_str([testcase]),  # type: ignore
-                     coverage, import_coverage
+                    exporter.export_sequences_to_str([testcase]),
+                    coverage,
+                    import_coverage,
                 )
-            self._testcases = [tc for idx, tc in enumerate(self._testcases) if idx not in idxs_to_remove]
+            self._testcases = [
+                tc
+                for idx, tc in enumerate(self._testcases)
+                if idx not in idxs_to_remove
+            ]
             logger.info(
                 "Number test cases removed because they have no coverage: %s",
                 num_removed_test_cases,
