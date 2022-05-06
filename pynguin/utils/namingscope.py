@@ -104,6 +104,8 @@ class VariableTypeNamingScope(AbstractNamingScope):
             if isinstance(type_, type):
                 # Regular type
                 tp_name = snake_case(type_.__name__)
+                if tp_name == "module":
+                    tp_name = "module_x_var"
             elif (name_ := getattr(type_, "_name", None)) is not None:
                 # Some type hint. Not sure if all have "_name"
                 tp_name = snake_case(name_)
