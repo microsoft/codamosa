@@ -20,6 +20,7 @@ from pynguin.ga.operators.ranking.crowdingdistance import (
     fast_epsilon_dominance_assignment,
 )
 from pynguin.generation.algorithms.abstractmosastrategy import AbstractMOSATestStrategy
+from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.utils.statistics.runtimevariable import RuntimeVariable
 
 if TYPE_CHECKING:
@@ -52,6 +53,14 @@ class DynaMOSATestStrategy(AbstractMOSATestStrategy):
         )
 
         self._population = self._get_random_population()
+        # Some code to export the random population
+        # exporter = PyTestExporter(wrap_code=False)
+        # self._logger.info(
+        #     "Initial population test cases:\n %s",
+        #     exporter.export_sequences(
+        #         "/tmp/initial_seeds.py", [tcc.test_case for tcc in self._population]
+        #     ),
+        # )
         self._goals_manager.update(self._population)
 
         # Calculate dominance ranks and crowding distance
