@@ -50,6 +50,9 @@ Jinja2 = "^3.0"
 Pygments = "^2.11"
 ordered-set = "^4.1"
 MutPy-Pynguin = "^0.7.1"
+typed-ast = "^1.5.3"
+colorama = "^0.4.4"
+colorlog = "^6.6.0"
 
 [tool.poetry.dev-dependencies]
 coverage = "^6.3"
