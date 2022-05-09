@@ -103,5 +103,7 @@ class LargeLanguageTestFactory(TestCaseFactory):
             and randomness.next_float()
             <= config.configuration.seeding.seeded_testcases_reuse_probability
         ):
-            return languagemodelseeding.seeded_testcase
+            seeded_testcase = languagemodelseeding.seeded_testcase
+            if seeded_testcase is not None:
+                return seeded_testcase
         return self._delegate.get_test_case()

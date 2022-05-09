@@ -278,7 +278,8 @@ src_13_res = """def test_Uniqueness():
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):
-    result = rewrite_tests(original_src)
+    result_dict = rewrite_tests(original_src)
+    result = list(result_dict.values())[0]
     assert result == result_src, (
         f"Incorrect rewriting. Expected:\n{result_src}" f"\ngot: \n{result}"
     )

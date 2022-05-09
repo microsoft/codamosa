@@ -334,7 +334,7 @@ class StatementDeserializer:
             The corresponding statement.
         """
         if config.configuration.seeding.allow_expandable_cluster:
-            logger.info("Trying to find in expandable cluster")
+            logger.debug("Trying to find in expandable cluster")
             gen_callable = self._test_cluster.try_resolve_call(  # type: ignore
                 ast.unparse(call.func)
             )
@@ -380,18 +380,21 @@ class StatementDeserializer:
             GenericConstructor, a GenericMethod or a GenericFunction.
         """
         call_name = str(call.func.attr)  # type: ignore
+        try:
+            call_id = call.func.value.id  # type: ignore
+        except AttributeError:
+            logger.debug("Can't get callid for %s", ast.unparse(call))
+            call_id = ""
         for obj in self._test_cluster.accessible_objects_under_test:
             if isinstance(obj, GenericConstructor):
                 owner = str(obj.owner).rsplit(".", maxsplit=1)[-1].split("'")[0]
-                call_id = call.func.value.id  # type: ignore
                 if call_name == owner and call_id not in self._ref_dict:
                     return obj
             elif isinstance(obj, GenericMethod):
                 # test if the type of the calling object is equal to the type
                 # of the owner of the generic method
-                call_id = call.func.value.id  # type: ignore
                 if call_name == obj.method_name and call_id in self._ref_dict:
-                    obj_from_ast = str(call.func.value.id)  # type: ignore
+                    obj_from_ast = str(call_id)
                     var_type = self._ref_dict[obj_from_ast].type
                     if var_type == obj.owner:
                         return obj
@@ -400,7 +403,6 @@ class StatementDeserializer:
                     return obj
         # Last ditch effort to retrieve methods if we have an expandable clutser
         if config.configuration.seeding.allow_expandable_cluster:
-            call_id = call.func.value.id  # type: ignore
             if call_id in self._ref_dict:
                 var_type = self._ref_dict[call_id].type
                 method = self._test_cluster.try_resolve_method_call(  # type: ignore

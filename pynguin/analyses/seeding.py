@@ -30,13 +30,14 @@ from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.languagemodels.model import _OpenAILanguageModel
 from pynguin.testcase.execution import ExecutionResult, TestCaseExecutor
 from pynguin.utils import randomness
+from pynguin.utils.generic.genericaccessibleobject import (
+    GenericCallableAccessibleObject,
+)
 from pynguin.utils.statistics.runtimevariable import RuntimeVariable
 
 if TYPE_CHECKING:
     from pynguin.setup.testcluster import TestCluster
-    from pynguin.utils.generic.genericaccessibleobject import (
-        GenericCallableAccessibleObject,
-    )
+
 
 Types = Union[float, int, str]
 logger = logging.getLogger(__name__)
@@ -374,26 +375,35 @@ class _LargeLanguageModelSeeding:
         self._executor = executor
 
     @property
-    def seeded_testcase(self) -> dtc.DefaultTestCase:
+    def seeded_testcase(self) -> Optional[dtc.DefaultTestCase]:
         """
         Generate a new test case. Prompt the language model with a generic accessible
         object to test.
 
         Returns:
-            A new generated test case
+            A new generated test case, or None if a test case could not be parsed
         """
         assert self._prompt_gaos is not None
         assert len(self._prompt_gaos) > 0
         gao_idx = randomness.next_int(0, len(self._prompt_gaos))
         prompt_gao = self._prompt_gaos.pop(gao_idx)
         str_test_case = self._model.target_test_case(prompt_gao)
+        logger.info("Codex-generated testcase:\n%s", str_test_case)
         transformer = AstToTestCaseTransformer(
             self._test_cluster,
             config.configuration.test_case_output.assertion_generation
             != config.AssertionGenerator.NONE,
         )
         transformer.visit(ast.parse(str_test_case))
-        return transformer.testcases[0]
+        if len(transformer.testcases) > 0:
+            testcase = transformer.testcases[0]
+            exporter = PyTestExporter(wrap_code=False)
+            logger.info(
+                "Imported test case:\n %s",
+                exporter.export_sequences_to_str([testcase]),
+            )
+            return testcase
+        return None
 
     @property
     def has_tests(self) -> bool:

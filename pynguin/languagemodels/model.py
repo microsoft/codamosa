@@ -8,10 +8,11 @@ import inspect
 import json
 import logging
 import string
-from typing import List
+from typing import Dict, List
 
 import requests
 
+from pynguin.languagemodels.outputfixers import rewrite_tests
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericCallableAccessibleObject,
     GenericConstructor,
@@ -78,8 +79,9 @@ class _OpenAILanguageModel:
         # TODO(clemieux): make configurable; adding a fudge factor
         self._max_query_len = 4096 - 200
         # TODO(clemieux): make configurable
-        self._temperature = 0.1
+        self._temperature = 1
         self._token_len_cache = {}
+        self.num_codex_calls = 0
 
     @property
     def test_src(self) -> str:
@@ -202,7 +204,7 @@ class _OpenAILanguageModel:
         # because that slows things down
         payload = {
             "prompt": context + "\n" + function_header,
-            "max_tokens": self._max_query_len,
+            "max_tokens": 200,
             "temperature": self._temperature,
             "stop": ["\n# Unit test for", "\ndef ", "\nclass "],
         }
@@ -211,8 +213,9 @@ class _OpenAILanguageModel:
             "Authorization": f"Bearer {self._authorization_key}",
         }
         res = requests.post(url, data=json.dumps(payload), headers=headers)
+        self.num_codex_calls += 1
         if res.status_code != 200:
-            logger.error("Failed to call for completion:\n%s", res)
+            logger.error("Failed to call for completion:\n%s", res.json())
             return ""
         return res.json()["choices"][0]["text"]
 
@@ -293,7 +296,12 @@ class _OpenAILanguageModel:
             except OSError:
                 start_line, end_line = -1, -1
 
-        return self._call_completion(function_header, start_line, end_line)
+        completion = self._call_completion(function_header, start_line, end_line)
+        generated_tests: Dict[str, str] = rewrite_tests(function_header + completion)
+        for test_name in generated_tests:
+            if test_name in function_header:
+                return generated_tests[test_name]
+        return ""
 
 
 languagemodel = _OpenAILanguageModel()

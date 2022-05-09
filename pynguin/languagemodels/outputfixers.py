@@ -6,7 +6,10 @@
 #
 
 import ast
-from typing import List, Set
+import logging
+from typing import Dict, List, Set
+
+logger = logging.getLogger()
 
 
 # Pulled From Python 3.10
@@ -515,8 +518,31 @@ def rewrite_test(fn_def_node: ast.FunctionDef):
     return fn_def_node
 
 
-# TODO: maybe rewrite as a part of the visitor
-def rewrite_tests(source: str) -> str:
+def fixup_result(result):
+    """
+    In case we aborted generation early (due to running out of tokens), remove
+    any lingering syntax errors that prevent parsing by the `ast` module.
+    (There may still be syntax errors when actually running the code)
+
+    Args:
+        result: some natural language source code
+
+    Returns:
+        source code that parses with ast.pasrse
+    """
+    try:
+        ast.parse(result)
+        return result
+    except SyntaxError as e:
+        line_to_rm = e.lineno
+        lines = result.split("\n")
+        if line_to_rm is None or line_to_rm >= len(lines):
+            return fixup_result("\n".join(lines[:-1]))
+        else:
+            return fixup_result("\n".join(lines[:line_to_rm]))
+
+
+def rewrite_tests(source: str) -> Dict[str, str]:
     """Rewrite the tests in `source` so that they can be parsed by
     AstToTestCaseTransformer
 
@@ -524,25 +550,32 @@ def rewrite_tests(source: str) -> str:
         source: the source to rewrite
 
     Returns:
-        rewritten source with all expressions converted to assign
-        stmts, etc.
+        a dictionary mapping test function names to the rewritten source for
+        that test function
     """
+    source = fixup_result(source)
     module_node: ast.Module = ast.parse(source)
     assert isinstance(module_node, ast.Module)
-    new_body = []
     # Rewrite the tests
+    return_tests: Dict[str, str] = {}
     for child_node in module_node.body:
         if isinstance(child_node, ast.FunctionDef) and child_node.name.startswith(
             "test_"
         ):
-            new_body.append(rewrite_test(child_node))
-        else:
-            new_body.append(child_node)
-    # Set a body
-    module_node.body = new_body
-    ast.fix_missing_locations(module_node)
-    # Return the rewritten source code
-    rewritten_source = ast.unparse(module_node)
-    if rewritten_source[-1] != "\n":
-        rewritten_source += "\n"
-    return rewritten_source
+            test_module = ast.Module(
+                body=[rewrite_test(child_node)], type_ignores=module_node.type_ignores
+            )
+            test_module = ast.fix_missing_locations(test_module)
+            try:
+                return_tests[child_node.name] = ast.unparse(test_module) + "\n"
+            except AttributeError as e:
+                # Info until we don't need to replicate this
+                logger.info(
+                    "Got error: %s\nwhen trying to unparse the transformation"
+                    " of %s from:\n%s",
+                    e,
+                    child_node.name,
+                    source,
+                )
+
+    return return_tests
