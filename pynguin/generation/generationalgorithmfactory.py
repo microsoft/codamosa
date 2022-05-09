@@ -156,6 +156,11 @@ class TestSuiteGenerationAlgorithmFactory(
             test_case_factory = tcf.SeededTestCaseFactory(
                 test_case_factory, strategy.test_factory
             )
+        if config.configuration.seeding.large_language_model_config != "":
+            self._logger.info("Using large language model seeding")
+            test_case_factory = tcf.LargeLanguageTestFactory(
+                test_case_factory, strategy.test_factory
+            )
         test_case_chromosome_factory: cf.ChromosomeFactory = (
             tccf.TestCaseChromosomeFactory(
                 strategy.test_factory,

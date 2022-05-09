@@ -39,11 +39,11 @@ import pynguin.ga.computations as ff
 import pynguin.ga.postprocess as pp
 import pynguin.ga.testsuitechromosome as tsc
 import pynguin.generation.generationalgorithmfactory as gaf
-import pynguin.languagemodels.model as model
 import pynguin.testcase.testcase as tc
 import pynguin.utils.statistics.statistics as stat
 from pynguin.generation.export.exportprovider import ExportProvider
 from pynguin.instrumentation.machinery import install_import_hook
+from pynguin.languagemodels import model
 from pynguin.setup.testclustergenerator import TestClusterGenerator
 from pynguin.testcase.execution import ExecutionTracer, TestCaseExecutor
 from pynguin.utils import randomness
@@ -199,11 +199,13 @@ def _setup_initial_population_seeding(
             config.configuration.seeding.initial_population_data
         )
 
+
+# pylint: disable=too-many-return-statements
 def _setup_language_model_seeding(
     test_cluster: TestCluster, executor: Optional[TestCaseExecutor] = None
 ) -> bool:
     """Sets up the large language model seeding"""
-    #TODO(clemieux): tests?
+    # TODO(clemieux): tests?
     if config.configuration.seeding.large_language_model_config != "":
         _LOGGER.info("Trying to set up the large language model.")
         config_file_name = config.configuration.seeding.large_language_model_config
@@ -211,24 +213,24 @@ def _setup_language_model_seeding(
             _LOGGER.error("The file %s does not exist", config_file_name)
             return False
 
-        with open(config_file_name, 'r') as f:
+        with open(config_file_name, "r", encoding="UTF-8") as config_file:
             try:
-                config_dict = json.load(f)
+                config_dict = json.load(config_file)
             except json.JSONDecodeError:
                 _LOGGER.error("%s is not valid JSON", config_file_name)
                 return False
-            if 'AuthorizationKey' not in config_dict:
+            if "AuthorizationKey" not in config_dict:
                 _LOGGER.error("No `AuthorizationKey` field in %s", config_file_name)
                 return False
-            if 'GenerateModel' not in config_dict:
+            if "GenerateModel" not in config_dict:
                 _LOGGER.error("no `GenerateModel` field in %s", config_file_name)
                 return False
-            if 'MutateModel' not in config_dict:
+            if "MutateModel" not in config_dict:
                 _LOGGER.error("no `GenerateModel` field in %s", config_file_name)
                 return False
-            authorization_key = config_dict['AuthorizationKey']
-            generate_model = config_dict['GenerateModel']
-            mutate_model = config_dict['MutateModel']
+            authorization_key = config_dict["AuthorizationKey"]
+            generate_model = config_dict["GenerateModel"]
+            mutate_model = config_dict["MutateModel"]
 
         model.languagemodel.authorization_key = authorization_key
         model.languagemodel.complete_model = generate_model
@@ -236,16 +238,19 @@ def _setup_language_model_seeding(
 
         module = importlib.import_module(config.configuration.module_name)
         module_path = module.__file__
+        if module_path is None:
+            _LOGGER.error("Module file does not exist")
+            return False
         if not os.path.isfile(module_path):
             _LOGGER.error("The module file %s does not exist", module_path)
             return False
-        with open(module_path) as f:
-            model.languagemodel.test_src = f.read()
+        with open(module_path, encoding="UTF-8") as module_file:
+            model.languagemodel.test_src = module_file.read()
+        seeding.languagemodelseeding.model = model.languagemodel
         seeding.languagemodelseeding.test_cluster = test_cluster
         seeding.languagemodelseeding.executor = executor
 
-        _LOGGER.error("Model seeding not yet supported.")
-        return False
+    return True
 
 
 def _setup_and_check() -> tuple[TestCaseExecutor, TestCluster] | None:

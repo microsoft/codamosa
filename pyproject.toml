@@ -53,6 +53,9 @@ MutPy-Pynguin = "^0.7.1"
 typed-ast = "^1.5.3"
 colorama = "^0.4.4"
 colorlog = "^6.6.0"
+requests = "^2.27.1"
+stubs = "^1.0.0"
+types-requests = "^2.27.25"
 
 [tool.poetry.dev-dependencies]
 coverage = "^6.3"
