@@ -7,7 +7,8 @@
 # This file tests the "expandable" test cluster
 # TODO: no tests for name collisions yet.
 
-from pynguin.setup.testcluster import ExpandableTestCluster
+import pynguin.configuration as config
+from pynguin.setup.testcluster import ExpandableTestCluster, TestCluster
 from pynguin.setup.testclustergenerator import TestClusterGenerator
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericConstructor,
@@ -350,3 +351,38 @@ def test_retrieve_gao_function_dependencies():
     assert len(expandable_cluster.modifiers) == 0
     generateable_types = [t.__name__ for t in expandable_cluster.generators.keys()]
     assert ["SomeArgumentType"] == generateable_types
+
+def test_expand_full_cluster():
+    """Tests that the configuration option to make the full expanded cluster expands
+    the cluster from the start. """
+
+    # expandable_cluster: TestCluster = TestClusterGenerator(
+    #     "tests.fixtures.cluster.no_typehint_imports", True
+    # ).generate_cluster()
+    # assert len(expandable_cluster.accessible_objects_under_test) == 1
+    # assert len(expandable_cluster.generators) == 0
+    # assert len(expandable_cluster.modifiers) == 0
+    #
+    # assert not config.configuration.seeding.expand_cluster
+
+    config.configuration.seeding.expand_cluster = True
+    expandable_cluster: TestCluster = TestClusterGenerator(
+        "tests.fixtures.cluster.no_typehint_imports", True
+    ).generate_cluster()
+    # There are 5 imports in this file:
+    # another depdendency: 1 function, 1 class with constructor
+    #   + 1 generator
+    # complex dependency: 2 classes with a modifier each
+    #   + 2 generators
+    #   + 2 modifiers
+    # dependency: 1 class with no modifier
+    #   + 1 generator
+    # typing_parameters_legacy: 3 functions that output None
+    # no_dependencies: Test class (1 modifier), test_function
+    #   + 1 generator
+    #   + 1 modifier
+    assert len(expandable_cluster.accessible_objects_under_test) == 1
+    assert len(expandable_cluster.generators) == 5, "\n".join(
+        [str((t.__name__, len(gens))) for t,gens in expandable_cluster.generators.items()]
+    )
+    assert len(expandable_cluster.modifiers) == 3

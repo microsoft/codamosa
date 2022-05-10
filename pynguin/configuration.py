@@ -283,6 +283,10 @@ class SeedingConfiguration:
     """Should we create an 'expandable' test cluster, which we can query for new
     functions at seeding/test time?"""
 
+    expand_cluster: bool = False
+    """Similar to the above, but create the expanded test cluster from the start.
+    """
+
     remove_testcases_without_coverage: bool = False
     """Should we remove seeded test cases that don't have any coverage of the test
      module?"""

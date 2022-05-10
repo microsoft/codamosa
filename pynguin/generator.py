@@ -104,7 +104,8 @@ def run_pynguin() -> ReturnCode:
 def _setup_test_cluster() -> TestCluster | None:
     test_cluster = TestClusterGenerator(
         config.configuration.module_name,
-        config.configuration.seeding.allow_expandable_cluster,
+        config.configuration.seeding.allow_expandable_cluster
+        or config.configuration.seeding.expand_cluster,
     ).generate_cluster()
     if test_cluster.num_accessible_objects_under_test() == 0:
         _LOGGER.error("SUT contains nothing we can test.")
