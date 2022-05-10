@@ -254,10 +254,18 @@ class SeedingConfiguration:
     """Should the generator use a static constant seeding technique to improve constant
     generation?"""
 
+    large_language_model_seeding: bool = False
+    """If set to True, assume we want to use an OpenAI large language
+    model to conduct seeding.
+    """
+
+    large_language_model_mutation: bool = False
+    """If set to True, assume we want to use an OpenAI large language
+    model to conduct mutation
+    """
+
     large_language_model_config: str = ""
-    """If set to a non-empty string, assume we want to use an OpenAI large language
-    model to conduct seeding, and point to a json file with an 'AuthorizationKey',
-    'GenerateModel', and 'MutateModel'.
+    """Point to a json file with an 'AuthorizationKey', 'GenerateModel', and 'MutateModel'.
     """
 
     initial_population_seeding: bool = False

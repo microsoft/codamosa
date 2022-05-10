@@ -98,7 +98,7 @@ class LargeLanguageTestFactory(TestCaseFactory):
 
     def get_test_case(self) -> tc.TestCase:
         if (
-            config.configuration.seeding.large_language_model_config != ""
+            config.configuration.seeding.large_language_model_seeding
             and languagemodelseeding.has_tests
             and randomness.next_float()
             <= config.configuration.seeding.seeded_testcases_reuse_probability
