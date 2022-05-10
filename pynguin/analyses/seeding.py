@@ -13,7 +13,7 @@ import os
 from abc import abstractmethod
 from pathlib import Path
 from pkgutil import iter_modules
-from typing import TYPE_CHECKING, Any, AnyStr, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, AnyStr, List, Optional, Union, cast, Dict
 
 from _py_abc import ABCMeta
 from ordered_set import OrderedSet
@@ -332,8 +332,9 @@ class _LargeLanguageModelSeeding:
     language model."""
 
     def __init__(self):
-        self._prompt_gaos: Optional[List[GenericCallableAccessibleObject]] = None
+        self._prompt_gaos: Optional[Dict[GenericCallableAccessibleObject, int]] = None
         self._sample_with_replacement: bool = True
+        self._max_samples_per_prompt: int = 1
 
     @property
     def model(self) -> _OpenAILanguageModel:
@@ -385,8 +386,10 @@ class _LargeLanguageModelSeeding:
         """
         assert self._prompt_gaos is not None
         assert len(self._prompt_gaos) > 0
-        gao_idx = randomness.next_int(0, len(self._prompt_gaos))
-        prompt_gao = self._prompt_gaos.pop(gao_idx)
+        prompt_gao = randomness.choice(list(self._prompt_gaos.keys()))
+        self._prompt_gaos[prompt_gao] -= 1
+        if self._prompt_gaos[prompt_gao] == 0:
+            self._prompt_gaos.pop(prompt_gao)
         str_test_case = self._model.target_test_case(prompt_gao)
         logger.info("Codex-generated testcase:\n%s", str_test_case)
         transformer = AstToTestCaseTransformer(
@@ -413,11 +416,11 @@ class _LargeLanguageModelSeeding:
             Whether or not test cases have been found
         """
         if self._prompt_gaos is None:
-            self._prompt_gaos = [
-                gao  # type: ignore
+            self._prompt_gaos = {
+                gao: self._max_samples_per_prompt  # type: ignore
                 for gao in self._test_cluster.accessible_objects_under_test
                 if issubclass(type(gao), GenericCallableAccessibleObject)
-            ]
+            }
         return len(self._prompt_gaos) > 0
 
 
