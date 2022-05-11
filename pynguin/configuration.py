@@ -265,7 +265,8 @@ class SeedingConfiguration:
     """
 
     large_language_model_config: str = ""
-    """Point to a json file with an 'AuthorizationKey', 'GenerateModel', and 'MutateModel'.
+    """Point to a json file with an 'AuthorizationKey', 'GenerateModel', and
+    'MutateModel'.
     """
 
     initial_population_seeding: bool = False

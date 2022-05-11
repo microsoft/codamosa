@@ -135,16 +135,17 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
                         module_obj.__name__, module_name
                     )
 
-
-
         self.add_classes_and_functions(self._module_name, module, True, True, 1)
         self._resolve_dependencies_recursive()
 
         # If we're making an expandable cluster, create the backup set of GAOs.
         if self._make_expandable_cluster:
-            # If we're making the whole expandable cluster from the start, then we never go
-            # into backup mode --- just add all the generators and stuff to the test cluster
-            self._test_cluster.set_backup_mode(not config.configuration.seeding.expand_cluster)  # type: ignore
+            # If we're making the whole expandable cluster from the start, then we
+            # never go into backup mode --- just add all the generators, modifiers,
+            # etc. to the test cluster
+            self._test_cluster.set_backup_mode(  # type: ignore
+                not config.configuration.seeding.expand_cluster
+            )
             self.add_classes_and_functions(self._module_name, module, False, False, 1)
 
             # Retrieve functions and classes in imported modules too.
@@ -265,7 +266,7 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
             self._logger.debug("Class %s already analyzed", klass)
             return
         self._analyzed_classes.add(klass)
-        if klass == type(None):
+        if klass == type(None):  # noqa: E721
             self._logger.debug("Class %s is NoneType, skipping", klass)
             return
         self._logger.debug("Analyzing class %s", klass)

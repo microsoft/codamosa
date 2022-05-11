@@ -8,8 +8,8 @@
 from __future__ import annotations
 
 import logging
-from abc import ABCMeta
 import time
+from abc import ABCMeta
 from typing import cast
 
 import pynguin.configuration as config
@@ -115,15 +115,14 @@ class AbstractMOSATestStrategy(
     def _get_random_population(self) -> list[tcc.TestCaseChromosome]:
         population: list[tcc.TestCaseChromosome] = []
         last_rec_time = time.time()
-        # In case test generation takes some time, start keeping track of achieved coverage
+        # In case inital population generation takes some time, start keeping track of
+        # achieved coverage by the initial population
         for _ in range(config.configuration.search_algorithm.population):
             chromosome = self._chromosome_factory.get_chromosome()
             population.append(chromosome)
             if time.time() - last_rec_time > 1:
                 last_rec_time = time.time()
-                self.before_first_search_iteration(
-                    self.create_test_suite(population)
-                )
+                self.before_first_search_iteration(self.create_test_suite(population))
 
         return population
 

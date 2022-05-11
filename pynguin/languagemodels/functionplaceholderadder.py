@@ -7,11 +7,11 @@
 """Visits a module containing a test function and adds a placeholder for mutation."""
 
 import ast
-from typing import List, Tuple, Optional
-
-import pynguin.utils.randomness as randomness
-import pynguin.configuration as config
 import logging
+from typing import List, Optional, Tuple
+
+import pynguin.configuration as config
+import pynguin.utils.randomness as randomness
 
 logger = logging.getLogger()
 
@@ -26,9 +26,9 @@ class _RandomMutationVisitor(ast.NodeVisitor):
 
     def __init__(self) -> None:
         super().__init__()
-        self._placeholder_elem : ast.Name = ast.Name(id='??')
+        self._placeholder_elem: ast.Name = ast.Name(id="??")
 
-    def visit_Module(self, node: ast.Module) -> Optional[Tuple[str, ast.AST]]:
+    def visit_Module(self, node: ast.Module) -> Optional[Tuple[str, str]]:
         """Visits a module and adds a placeholder element to one of the
         test functions defined in the module.
 
@@ -41,14 +41,18 @@ class _RandomMutationVisitor(ast.NodeVisitor):
             test function was found
 
         """
-        fn_defs = [stmt for stmt in node.body if isinstance(stmt, ast.FunctionDef) and stmt.name.startswith("test_")]
+        fn_defs = [
+            stmt
+            for stmt in node.body
+            if isinstance(stmt, ast.FunctionDef) and stmt.name.startswith("test_")
+        ]
         if len(fn_defs) == 0:
             print("No test functions found in the module.")
             return None
         fn_def_to_mutate = randomness.choice(fn_defs)
         return self.visit(fn_def_to_mutate)
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> Tuple[str, ast.AST]:
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> Tuple[str, str]:
         """Visits a single function and adds a placeholder element to be
         filled, either:
            (1) replacing an entire function call
@@ -60,28 +64,49 @@ class _RandomMutationVisitor(ast.NodeVisitor):
 
         Returns:
             a tuple containing (1) the name of the function that was altered and
-            (2) the altered function as an ast node.
+            (2) the altered function as string.
         """
 
-        mutateable_assigns_idx = [i for i, stmt in enumerate(node.body) if isinstance(stmt, ast.Assign)
-                                  and isinstance(stmt.value, ast.Call) or
-                                  (isinstance(stmt.value,ast.Constant) and isinstance(stmt.value.value, str))]
+        mutateable_assigns_idx = [
+            i
+            for i, stmt in enumerate(node.body)
+            if isinstance(stmt, ast.Assign)
+            and (
+                isinstance(stmt.value, ast.Call)
+                or (
+                    isinstance(stmt.value, ast.Constant)
+                    and isinstance(stmt.value.value, str)
+                )
+            )
+        ]
         if mutateable_assigns_idx == [] or randomness.next_float() < 0.3:
             new_body = node.body + [ast.Expr(self._placeholder_elem)]
         else:
             stmt_idx_to_mutate = randomness.choice(mutateable_assigns_idx)
-            stmt_to_mutate : ast.Assign = node.body[stmt_idx_to_mutate]
-            new_stmt = ast.Assign(targets=stmt_to_mutate.targets, value=self._placeholder_elem)
-            new_body = node.body[:stmt_idx_to_mutate] + [new_stmt] + node.body[stmt_idx_to_mutate + 1:]
+            stmt_to_mutate: ast.Assign = node.body[stmt_idx_to_mutate]  # type: ignore
+            new_stmt = ast.Assign(
+                targets=stmt_to_mutate.targets, value=self._placeholder_elem
+            )
+            new_body = (
+                node.body[:stmt_idx_to_mutate]
+                + [new_stmt]
+                + node.body[stmt_idx_to_mutate + 1 :]
+            )
 
-        new_function = ast.FunctionDef(name=node.name, args=node.args, body=new_body, decorator_list=node.decorator_list, returns=node.returns)
+        new_function = ast.FunctionDef(
+            name=node.name,
+            args=node.args,
+            body=new_body,
+            decorator_list=node.decorator_list,
+            returns=node.returns,
+        )
         new_function = ast.fix_missing_locations(new_function)
 
         return node.name, ast.unparse(new_function)
 
 
-def add_placeholder(node : ast.Module) -> str:
-    """ Adds the placeholder ?? somewhere to a test function in `node`, and replaces
+def add_placeholder(node: ast.Module) -> str:
+    """Adds the placeholder ?? somewhere to a test function in `node`, and replaces
     the pynguin module_x. qualifications with the natural names, removing the
     qualfications entirely for functions from the module under test.
 
@@ -94,29 +119,26 @@ def add_placeholder(node : ast.Module) -> str:
 
     # First, add the placeholder
     visitor = _RandomMutationVisitor()
-    if (res :=  visitor.visit(node) ) is None:
+    if (res := visitor.visit(node)) is None:
         logger.error("Could not find any functions to mutate.")
         return ast.unparse(node)
-    function_name_mutated, mutated_function = res
-
-    module_with_only_function = ast.Module(body=[mutated_function], type_ignores=node.type_ignores)
-    mutated = ast.unparse(module_with_only_function)
+    function_name_mutated, mutated = res
 
     # Then, fixup the imports
-    imports: List[ast.Import] = [elem for elem in ast.Module.body if isinstance(elem, ast.Import)]
+    imports: List[ast.Import] = [
+        elem for elem in ast.Module.body if isinstance(elem, ast.Import)
+    ]
     quals_to_replace = {}
     for import_ in imports:
         for name in import_.names:
+            if name.asname is None:
+                continue
             if config.configuration.module_name in name.name:
-                quals_to_replace[name.asname + '.'] = ''
+                quals_to_replace[name.asname + "."] = ""
             else:
-                quals_to_replace[name.asname + '.'] = name.name + '.'
+                quals_to_replace[name.asname + "."] = name.name + "."
 
     for alias_to_replace, replace_name in quals_to_replace.items():
         mutated = mutated.replace(alias_to_replace, replace_name)
 
     return mutated
-
-
-
-

@@ -13,7 +13,7 @@ from typing import Dict, List
 
 import requests
 
-import pynguin.testcase as tc
+import pynguin.testcase.testcase as tc
 from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.languagemodels.functionplaceholderadder import add_placeholder
 from pynguin.languagemodels.outputfixers import rewrite_tests
@@ -139,14 +139,16 @@ class _OpenAILanguageModel:
     def edit_model(self, edit_model: str):
         self._edit_model = edit_model
 
-    def _get_maximal_source_context(self, start_line: int = -1, end_line: int = -1, used_tokens :int = 0):
-        """
-        Tries to get the maximal source context that includes start_line to end_line but
-        remains under the threshold
+    def _get_maximal_source_context(
+        self, start_line: int = -1, end_line: int = -1, used_tokens: int = 0
+    ):
+        """Tries to get the maximal source context that includes start_line to end_line but
+        remains under the threshold.
 
         Args:
             start_line: the start line that should be included
             end_line: the end line that should be included
+            used_tokens: the number of tokens to reduce the max allowed by
 
         Returns:
             as many lines from the source as possible that fit in max_context.
@@ -188,21 +190,26 @@ class _OpenAILanguageModel:
 
         return "\n".join(split_src[context_start_line:end_line])
 
-
     def _call_mutate(self, function_to_mutate: str) -> str:
-        """Asks the model to edit the given function
+        """Asks the model to fill in the `??` in the given function
 
         Args:
-            function_header: a string containing a def statement to be completed
+            function_to_mutate: a string containing code with a `??` placeholder
 
         Returns:
-            the result of calling the model to complete the function header.
+            the result of calling the model to edit the given code
         """
-        context = self._get_maximal_source_context(used_tokens=approx_number_tokens(function_to_mutate))
+        context = self._get_maximal_source_context(
+            used_tokens=approx_number_tokens(function_to_mutate)
+        )
 
         url = f"https://api.openai.com/v1/engines/{self.edit_model}/edits"
 
-        payload = {'input': context + "\n" + function_to_mutate, 'instruction': "Fill in the ??", 'temperature': self._temperature}
+        payload = {
+            "input": context + "\n" + function_to_mutate,
+            "instruction": "Fill in the ??",
+            "temperature": self._temperature,
+        }
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self._authorization_key}",
@@ -267,31 +274,42 @@ class _OpenAILanguageModel:
         return self._token_len_cache[line_num]
 
     def mutate_test_case(self, test_case: tc.TestCase) -> str:
-        """Calls a large language model to mutate the test case in `tc`
+        """Calls a large language model to mutate the test case `tc`
+
+        Args:
+            test_case: the tc.TestCase object to mutate.
+
+        Returns:
+            the mutated test case as a string
         """
         exporter = PyTestExporter(wrap_code=False)
-        str_test_case = exporter.export_sequences_to_str(test_case)
+        str_test_case = exporter.export_sequences_to_str([test_case])
         ast_test_case_module = ast.parse(str_test_case)
         function_with_placeholder = add_placeholder(ast_test_case_module, True)
         mutated = self._call_mutate(function_with_placeholder)
 
-        test_start_idxs = [i for i, line in enumerate(mutated.split('\n')) if line.startswith('def test_')]
+        test_start_idxs = [
+            i
+            for i, line in enumerate(mutated.split("\n"))
+            if line.startswith("def test_")
+        ]
         if len(test_start_idxs) == 0:
             print("no testsss....")
-            return test_case
-        mutated_test_as_str = ['\n'.join(mutated.split('\n')[test_start_idxs:])]
-        mutated_tests_fixed : Dict[str, str] = rewrite_tests(mutated_test_as_str)
-        # TODO: how to transform back into a test case?
-        mutated_str_test_case = ""
-        try:
-            for elem in ast.parse(mutated).body:
-                if isinstance(elem, ast.FunctionDef) and elem.name.startswith("test_"):
-                    mutated_str_test_case = ast.unparse(elem)
-                    break
-        except SyntaxError:
-            print(f"!!!failed to parse \n{mutated}")
-
-        return mutated_str_test_case
+            return str_test_case
+        mutated_test_as_str = ["\n".join(mutated.split("\n")[test_start_idxs[0] :])]
+        mutated_tests_fixed: Dict[str, str] = rewrite_tests(mutated_test_as_str)
+        return list(mutated_tests_fixed.values())[0]
+        # # TODO: how to transform back into a test case?
+        # mutated_str_test_case = ""
+        # try:
+        #     for elem in ast.parse(mutated).body:
+        #         if isinstance(elem, ast.FunctionDef) and elem.name.startswith("test_"):
+        #             mutated_str_test_case = ast.unparse(elem)
+        #             break
+        # except SyntaxError:
+        #     print(f"!!!failed to parse \n{mutated}")
+        #
+        # return mutated_str_test_case
 
     def target_test_case(self, gao: GenericCallableAccessibleObject) -> str:
         """Provides a test case targeted to the function/method/constructor

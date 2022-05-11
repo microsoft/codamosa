@@ -352,9 +352,10 @@ def test_retrieve_gao_function_dependencies():
     generateable_types = [t.__name__ for t in expandable_cluster.generators.keys()]
     assert ["SomeArgumentType"] == generateable_types
 
+
 def test_expand_full_cluster():
     """Tests that the configuration option to make the full expanded cluster expands
-    the cluster from the start. """
+    the cluster from the start."""
 
     # expandable_cluster: TestCluster = TestClusterGenerator(
     #     "tests.fixtures.cluster.no_typehint_imports", True
@@ -383,6 +384,9 @@ def test_expand_full_cluster():
     #   + 1 modifier
     assert len(expandable_cluster.accessible_objects_under_test) == 1
     assert len(expandable_cluster.generators) == 5, "\n".join(
-        [str((t.__name__, len(gens))) for t,gens in expandable_cluster.generators.items()]
+        [
+            str((t.__name__, len(gens)))
+            for t, gens in expandable_cluster.generators.items()
+        ]
     )
     assert len(expandable_cluster.modifiers) == 3
