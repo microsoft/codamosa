@@ -22,9 +22,10 @@ from setuptools import find_packages
 import pynguin.configuration as config
 import pynguin.ga.testcasechromosome as tcc
 import pynguin.testcase.defaulttestcase as dtc
+import pynguin.testcase.testcase as tc
 import pynguin.testcase.testfactory as tf
 import pynguin.utils.statistics.statistics as stat
-from pynguin.analyses.statement_deserializer import StatementDeserializer
+from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
 from pynguin.ga.computations import compute_branch_coverage
 from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.languagemodels.model import _OpenAILanguageModel
@@ -376,7 +377,7 @@ class _LargeLanguageModelSeeding:
         self._executor = executor
 
     @property
-    def seeded_testcase(self) -> Optional[dtc.DefaultTestCase]:
+    def seeded_testcase(self) -> Optional[tc.TestCase]:
         """
         Generate a new test case. Prompt the language model with a generic accessible
         object to test.
@@ -392,17 +393,19 @@ class _LargeLanguageModelSeeding:
             self._prompt_gaos.pop(prompt_gao)
         str_test_case = self._model.target_test_case(prompt_gao)
         logger.info("Codex-generated testcase:\n%s", str_test_case)
-        transformer = AstToTestCaseTransformer(
-            self._test_cluster,
-            config.configuration.test_case_output.assertion_generation
-            != config.AssertionGenerator.NONE,
-        )
-        transformer.visit(ast.parse(str_test_case))
-        if len(transformer.testcases) > 0:
-            testcase = transformer.testcases[0]
+        (
+            testcases,
+            parsed_statements,
+            parsable_statements,
+        ) = deserialize_code_to_testcases(str_test_case, self._test_cluster)
+
+        if len(testcases) > 0:
+            testcase = testcases[0]
             exporter = PyTestExporter(wrap_code=False)
             logger.info(
-                "Imported test case:\n %s",
+                "Imported test case (%i/%i statements parsed):\n %s",
+                parsed_statements,
+                parsable_statements,
                 exporter.export_sequences_to_str([testcase]),
             )
             return testcase
@@ -475,15 +478,15 @@ class _InitialPopulationSeeding:
         self._sample_with_replacement = sample_with_replacement
 
     @staticmethod
-    def get_ast_tree(module_path: AnyStr | os.PathLike[AnyStr]) -> ast.Module | None:
-
-        """Returns the ast tree from a module
+    def get_test_code(module_path: AnyStr | os.PathLike[AnyStr]) -> str | None:
+        """Returns test code for the module under test present in the folder
+        at `module_path`.
 
         Args:
             module_path: The path to the project's root
 
         Returns:
-            The ast tree of the given module.
+            The code of the given module.
         """
         module_name = config.configuration.module_name.rsplit(".", maxsplit=1)[-1]
         logger.debug("Module name: %s", module_name)
@@ -499,7 +502,7 @@ class _InitialPopulationSeeding:
                 logger.debug("Module name found: %s", result[0])
                 stat.track_output_variable(RuntimeVariable.SuitableTestModule, True)
                 with open(result[0], encoding="utf-8") as module_file:
-                    return ast.parse(module_file.read())
+                    return module_file.read()
             else:
                 logger.debug("No suitable test module found.")
                 stat.track_output_variable(RuntimeVariable.SuitableTestModule, False)
@@ -515,18 +518,25 @@ class _InitialPopulationSeeding:
         Args:
             module_path: Path to the module to collect the test cases from
         """
-        tree = self.get_ast_tree(module_path)
-        if tree is None:
+        code = self.get_test_code(module_path)
+        if code is None:
             config.configuration.seeding.initial_population_seeding = False
             logger.info("Provided testcases are not used.")
             return
-        transformer = AstToTestCaseTransformer(
-            self._test_cluster,
-            config.configuration.test_case_output.assertion_generation
-            != config.AssertionGenerator.NONE,
-        )
-        transformer.visit(tree)
-        self._testcases = transformer.testcases
+        try:
+            (
+                test_cases,
+                parsed_statements,
+                parsable_statements,
+            ) = deserialize_code_to_testcases(code, self._test_cluster)
+        # In case ast.parse throws
+        except BaseException as exception:  # pylint: disable=broad-except
+            logger.exception("Cannot read module: %s", exception)
+            stat.track_output_variable(RuntimeVariable.SuitableTestModule, False)
+            logger.info("Provided testcases are not used.")
+            return
+
+        self._testcases = test_cases
         stat.track_output_variable(RuntimeVariable.FoundTestCases, len(self._testcases))
         if not self._testcases:
             config.configuration.seeding.initial_population_seeding = False
@@ -544,11 +554,9 @@ class _InitialPopulationSeeding:
             RuntimeVariable.CollectedTestCases, len(self._testcases)
         )
         stat.track_output_variable(
-            RuntimeVariable.ParsableStatements, transformer.total_statements
+            RuntimeVariable.ParsableStatements, parsable_statements
         )
-        stat.track_output_variable(
-            RuntimeVariable.ParsedStatements, transformer.total_parsed_statements
-        )
+        stat.track_output_variable(RuntimeVariable.ParsedStatements, parsed_statements)
         self._remove_no_coverage_testcases()
         self._mutate_testcases_initially()
 
@@ -620,84 +628,6 @@ class _InitialPopulationSeeding:
             Whether or not test cases have been found
         """
         return len(self._testcases) > 0
-
-
-# pylint: disable=invalid-name, missing-function-docstring, too-many-instance-attributes
-class AstToTestCaseTransformer(ast.NodeVisitor):
-    """An AST NodeVisitor that tries to convert an AST into our internal
-    test case representation."""
-
-    def __init__(self, test_cluster: TestCluster, create_assertions: bool):
-        self._deserializer = StatementDeserializer(test_cluster)
-        self._current_parsable: bool = True
-        self._testcases: list[dtc.DefaultTestCase] = []
-        self._number_found_testcases: int = 0
-        self._create_assertions = create_assertions
-        self.total_statements = 0
-        self.total_parsed_statements = 0
-        self._current_parsed_statements = 0
-        self._current_max_num_statements = 0
-
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
-        # Don't include non-test functions as tests.
-        if not node.name.startswith("test_") and not node.name.startswith("seed_test_"):
-            return
-        self._number_found_testcases += 1
-        self._deserializer.reset()
-        self._current_parsable = True
-        self._current_parsed_statements = 0
-        self._current_max_num_statements = len(
-            [e for e in node.body if not isinstance(e, ast.Assert)]
-        )
-        self.generic_visit(node)
-        self.total_statements += self._current_max_num_statements
-        self.total_parsed_statements += self._current_parsed_statements
-        current_testcase = self._deserializer.get_test_case()
-        if self._current_parsable:
-            self._testcases.append(current_testcase)
-            logger.info("Successfully imported %s.", node.name)
-        else:
-            if (
-                self._current_parsed_statements > 0
-                and config.configuration.seeding.include_partially_parsable
-            ):
-                logger.info(
-                    "Partially parsed %s. Retrieved %s/%s statements.",
-                    node.name,
-                    self._current_parsed_statements,
-                    self._current_max_num_statements,
-                )
-                self._testcases.append(current_testcase)
-            else:
-                logger.info("Failed to parse %s.", node.name)
-
-    def visit_Assign(self, node: ast.Assign) -> Any:
-        if (
-            self._current_parsable
-            or config.configuration.seeding.include_partially_parsable
-        ):
-            if self._deserializer.add_assign_stmt(node):
-                self._current_parsed_statements += 1
-            else:
-                self._current_parsable = False
-
-    def visit_Assert(self, node: ast.Assert) -> Any:
-        if (
-            self._current_parsable
-            or config.configuration.seeding.include_partially_parsable
-        ) and self._create_assertions:
-            self._deserializer.add_assert_stmt(node)
-
-    @property
-    def testcases(self) -> list[dtc.DefaultTestCase]:
-        """Provides the testcases that could be generated from the given AST.
-        It is possible that not every aspect of the AST could be transformed
-        to our internal representation.
-
-        Returns:
-            The generated testcases.
-        """
-        return self._testcases
 
 
 languagemodelseeding = _LargeLanguageModelSeeding()

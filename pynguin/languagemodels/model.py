@@ -296,20 +296,9 @@ class _OpenAILanguageModel:
         if len(test_start_idxs) == 0:
             print("no testsss....")
             return str_test_case
-        mutated_test_as_str = ["\n".join(mutated.split("\n")[test_start_idxs[0] :])]
+        mutated_test_as_str = "\n".join(mutated.split("\n")[test_start_idxs[0] :])
         mutated_tests_fixed: Dict[str, str] = rewrite_tests(mutated_test_as_str)
-        return list(mutated_tests_fixed.values())[0]
-        # # TODO: how to transform back into a test case?
-        # mutated_str_test_case = ""
-        # try:
-        #     for elem in ast.parse(mutated).body:
-        #         if isinstance(elem, ast.FunctionDef) and elem.name.startswith("test_"):
-        #             mutated_str_test_case = ast.unparse(elem)
-        #             break
-        # except SyntaxError:
-        #     print(f"!!!failed to parse \n{mutated}")
-        #
-        # return mutated_str_test_case
+        return "\n\n".join(mutated_tests_fixed.values())
 
     def target_test_case(self, gao: GenericCallableAccessibleObject) -> str:
         """Provides a test case targeted to the function/method/constructor

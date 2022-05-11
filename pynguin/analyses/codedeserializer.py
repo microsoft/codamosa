@@ -6,7 +6,7 @@ from __future__ import annotations
 import ast
 import inspect
 import logging
-from typing import TYPE_CHECKING, Any, Dict, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, cast
 
 import pynguin.testcase.defaulttestcase as dtc
 from pynguin import configuration as config
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-return-statements
-class StatementDeserializer:
+class _StatementDeserializer:
     """All the utilities to deserialize statements represented as AST nodes
     into TestCase objects."""
 
@@ -663,3 +663,108 @@ class StatementDeserializer:
         #      in order to support this
         #     return None
         return None
+
+
+# pylint: disable=invalid-name, missing-function-docstring, too-many-instance-attributes
+class _AstToTestCaseTransformer(ast.NodeVisitor):
+    """An AST NodeVisitor that tries to convert an AST into our internal
+    test case representation."""
+
+    def __init__(self, test_cluster: TestCluster, create_assertions: bool):
+        self._deserializer = _StatementDeserializer(test_cluster)
+        self._current_parsable: bool = True
+        self._testcases: list[dtc.DefaultTestCase] = []
+        self._number_found_testcases: int = 0
+        self._create_assertions = create_assertions
+        self.total_statements = 0
+        self.total_parsed_statements = 0
+        self._current_parsed_statements = 0
+        self._current_max_num_statements = 0
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
+        # Don't include non-test functions as tests.
+        if not node.name.startswith("test_") and not node.name.startswith("seed_test_"):
+            return
+        self._number_found_testcases += 1
+        self._deserializer.reset()
+        self._current_parsable = True
+        self._current_parsed_statements = 0
+        self._current_max_num_statements = len(
+            [e for e in node.body if not isinstance(e, ast.Assert)]
+        )
+        self.generic_visit(node)
+        self.total_statements += self._current_max_num_statements
+        self.total_parsed_statements += self._current_parsed_statements
+        current_testcase = self._deserializer.get_test_case()
+        if self._current_parsable:
+            self._testcases.append(current_testcase)
+            logger.info("Successfully imported %s.", node.name)
+        else:
+            if (
+                self._current_parsed_statements > 0
+                and config.configuration.seeding.include_partially_parsable
+            ):
+                logger.info(
+                    "Partially parsed %s. Retrieved %s/%s statements.",
+                    node.name,
+                    self._current_parsed_statements,
+                    self._current_max_num_statements,
+                )
+                self._testcases.append(current_testcase)
+            else:
+                logger.info("Failed to parse %s.", node.name)
+
+    def visit_Assign(self, node: ast.Assign) -> Any:
+        if (
+            self._current_parsable
+            or config.configuration.seeding.include_partially_parsable
+        ):
+            if self._deserializer.add_assign_stmt(node):
+                self._current_parsed_statements += 1
+            else:
+                self._current_parsable = False
+
+    def visit_Assert(self, node: ast.Assert) -> Any:
+        if (
+            self._current_parsable
+            or config.configuration.seeding.include_partially_parsable
+        ) and self._create_assertions:
+            self._deserializer.add_assert_stmt(node)
+
+    @property
+    def testcases(self) -> list[dtc.DefaultTestCase]:
+        """Provides the testcases that could be generated from the given AST.
+        It is possible that not every aspect of the AST could be transformed
+        to our internal representation.
+
+        Returns:
+            The generated testcases.
+        """
+        return self._testcases
+
+
+def deserialize_code_to_testcases(
+    test_file_contents: str, test_cluster: TestCluster
+) -> Tuple[List[dtc.DefaultTestCase], int, int]:
+    """Extracts as many TestCase objects as possible from the given code.
+
+    Args:
+        test_file_contents: code containing tests
+        test_cluster: the TestCluster to deserialize with
+
+    Returns:
+        A tuple consisting of (1) a list of TestCase extracted from the given code
+        (2) the number of parsable statements in the given code (3) the number
+        of successfully parsed statements from that code
+    """
+    transformer = _AstToTestCaseTransformer(
+        test_cluster,
+        config.configuration.test_case_output.assertion_generation
+        != config.AssertionGenerator.NONE,
+    )
+    transformer.visit(ast.parse(test_file_contents))
+    return (
+        transformer.testcases,
+        transformer.total_parsed_statements,
+        transformer.total_statements,
+    )

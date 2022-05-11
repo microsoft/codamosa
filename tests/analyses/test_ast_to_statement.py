@@ -4,11 +4,10 @@
 #
 #  SPDX-License-Identifier: LGPL-3.0-or-later
 #
-import ast
 
 import pytest
 
-from pynguin.analyses.seeding import AstToTestCaseTransformer
+from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
 from pynguin.generation.export.exportprovider import ExportProvider
 from pynguin.setup.testclustergenerator import TestClusterGenerator
 
@@ -54,10 +53,9 @@ def test_case_0():
     test_cluster = TestClusterGenerator(
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
-    transformer = AstToTestCaseTransformer(test_cluster, False)
-    transformer.visit(ast.parse(testcase_seed))
+    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster)
     export_path = tmp_path / "export.py"
-    ExportProvider.get_exporter().export_sequences(export_path, transformer.testcases)
+    ExportProvider.get_exporter().export_sequences(export_path, testcases)
     with open(export_path) as f:
         content = f.read()
         assert (

@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Sequence, cast
 
 from ordered_set import OrderedSet
 from typing_inspect import get_args, get_origin
@@ -16,6 +16,8 @@ from typing_inspect import get_args, get_origin
 import pynguin.configuration as config
 import pynguin.testcase.statement as stmt
 import pynguin.utils.generic.genericaccessibleobject as gao
+from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
+from pynguin.languagemodels import model
 from pynguin.utils import randomness
 from pynguin.utils.exceptions import ConstructionFailedException
 from pynguin.utils.type_utils import (
@@ -564,6 +566,29 @@ class TestFactory:
         except ConstructionFailedException:
             self._rollback_changes(test_case, previous_length, position)
             return False
+
+    def get_model_mutants(self, test_case: tc.TestCase) -> Sequence[tc.TestCase]:
+        """Invoke a large language model to mutate the given test case.
+
+        Args:
+            test_case: test case to use as seed for mutation
+
+        Returns:
+            a list of test_cases, as mutated by the large language model.
+        """
+        mutated_tests = model.languagemodel.mutate_test_case(test_case)
+        (
+            testcases,
+            parsed_statements,
+            parsable_statements,
+        ) = deserialize_code_to_testcases(mutated_tests, self._test_cluster)
+        logging.info(
+            "Got %i mutant testcases; parsed %i/%i statements. ",
+            len(testcases),
+            parsed_statements,
+            parsable_statements,
+        )
+        return testcases
 
     @staticmethod
     def _select_random_variable_for_call(

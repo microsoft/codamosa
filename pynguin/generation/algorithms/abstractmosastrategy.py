@@ -33,6 +33,19 @@ class AbstractMOSATestStrategy(
         self._population: list[tcc.TestCaseChromosome] = []
         self._number_of_goals = -1
 
+    def _get_llm_mutants(self) -> list[tcc.TestCaseChromosome]:
+        offspring_population: list[tcc.TestCaseChromosome] = []
+        best_so_far = self._archive.solutions
+        for chromosome in best_so_far:
+            mutants = self._test_factory.get_model_mutants(chromosome.test_case)
+            offspring_population.extend(
+                [
+                    tcc.TestCaseChromosome(mutant, self._test_factory)
+                    for mutant in mutants
+                ]
+            )
+        return offspring_population
+
     def _breed_next_generation(self) -> list[tcc.TestCaseChromosome]:
         offspring_population: list[tcc.TestCaseChromosome] = []
         for _ in range(int(config.configuration.search_algorithm.population / 2)):
