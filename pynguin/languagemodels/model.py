@@ -285,7 +285,7 @@ class _OpenAILanguageModel:
         exporter = PyTestExporter(wrap_code=False)
         str_test_case = exporter.export_sequences_to_str([test_case])
         ast_test_case_module = ast.parse(str_test_case)
-        function_with_placeholder = add_placeholder(ast_test_case_module, True)
+        function_with_placeholder = add_placeholder(ast_test_case_module)
         mutated = self._call_mutate(function_with_placeholder)
 
         test_start_idxs = [
@@ -297,6 +297,7 @@ class _OpenAILanguageModel:
             print("no testsss....")
             return str_test_case
         mutated_test_as_str = "\n".join(mutated.split("\n")[test_start_idxs[0] :])
+        print("Here's what codex outputted:\n", mutated_test_as_str)
         mutated_tests_fixed: Dict[str, str] = rewrite_tests(mutated_test_as_str)
         return "\n\n".join(mutated_tests_fixed.values())
 

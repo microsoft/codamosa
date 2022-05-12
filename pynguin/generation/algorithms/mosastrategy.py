@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from ordered_set import OrderedSet
 
+import pynguin.configuration as config
 import pynguin.ga.computations as ff
 import pynguin.utils.statistics.statistics as stat
 from pynguin.ga.operators.ranking.crowdingdistance import (
@@ -53,11 +54,20 @@ class MOSATestStrategy(AbstractMOSATestStrategy):
         self.before_first_search_iteration(
             self.create_test_suite(self._archive.solutions)
         )
+
+        last_num_covered_goals = len(self._archive.covered_goals)
+        its_without_update = 0
         while (
             self.resources_left()
             and self._number_of_goals - len(self._archive.covered_goals) != 0
         ):
-            self.evolve()
+            num_covered_goals = len(self._archive.covered_goals)
+            if num_covered_goals == last_num_covered_goals:
+                its_without_update += 1
+            else:
+                its_without_update = 0
+            last_num_covered_goals = num_covered_goals
+            self.evolve(its_without_update > 25)
             self.after_search_iteration(self.create_test_suite(self._archive.solutions))
 
         self.after_search_finish()
@@ -67,11 +77,12 @@ class MOSATestStrategy(AbstractMOSATestStrategy):
             else self._get_best_individuals()
         )
 
-    def evolve(self) -> None:
+    def evolve(self, llm_update=False) -> None:
         """Runs one evolution step."""
-        offspring_population: list[
-            tcc.TestCaseChromosome
-        ] = self._breed_next_generation()
+        if llm_update and config.configuration.seeding.large_language_model_mutation:
+            offspring_population: list[tcc.TestCaseChromosome] = self._get_llm_mutants()
+        else:
+            offspring_population = self._breed_next_generation()
 
         # Create union of parents and offspring
         union: list[tcc.TestCaseChromosome] = []

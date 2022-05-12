@@ -207,7 +207,10 @@ def _setup_language_model_seeding(
 ) -> bool:
     """Sets up the large language model seeding"""
     # TODO(clemieux): tests?
-    if config.configuration.seeding.large_language_model_seeding:
+    if (
+        config.configuration.seeding.large_language_model_seeding
+        or config.configuration.seeding.large_language_model_mutation
+    ):
         _LOGGER.info("Trying to set up the large language model.")
         config_file_name = config.configuration.seeding.large_language_model_config
         if not os.path.isfile(config_file_name):

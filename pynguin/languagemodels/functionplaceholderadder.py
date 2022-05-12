@@ -126,7 +126,7 @@ def add_placeholder(node: ast.Module) -> str:
 
     # Then, fixup the imports
     imports: List[ast.Import] = [
-        elem for elem in ast.Module.body if isinstance(elem, ast.Import)
+        elem for elem in node.body if isinstance(elem, ast.Import)
     ]
     quals_to_replace = {}
     for import_ in imports:
@@ -136,7 +136,8 @@ def add_placeholder(node: ast.Module) -> str:
             if config.configuration.module_name in name.name:
                 quals_to_replace[name.asname + "."] = ""
             else:
-                quals_to_replace[name.asname + "."] = name.name + "."
+                pass
+                # quals_to_replace[name.asname + "."] = name.name + "."
 
     for alias_to_replace, replace_name in quals_to_replace.items():
         mutated = mutated.replace(alias_to_replace, replace_name)

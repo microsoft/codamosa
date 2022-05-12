@@ -34,6 +34,7 @@ class AbstractMOSATestStrategy(
         self._number_of_goals = -1
 
     def _get_llm_mutants(self) -> list[tcc.TestCaseChromosome]:
+        print("Getting llm mutants...")
         offspring_population: list[tcc.TestCaseChromosome] = []
         best_so_far = self._archive.solutions
         for chromosome in best_so_far:
