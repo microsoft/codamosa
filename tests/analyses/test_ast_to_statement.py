@@ -61,3 +61,21 @@ def test_case_0():
         assert (
             content == testcase_seed
         ), f"=======\n{content}\n=== differs from ===\n{testcase_seed}"
+
+
+def test_deserialize_object_not_under_test():
+    testcase_seed = """import tests.fixtures.cluster.dependency as module_0
+import tests.fixtures.cluster.simple_dependencies as module_1
+
+def test_case_0():
+    int_0 = 1
+    some_argument_type_0 = module_0.SomeArgumentType(int_0)
+    construct_me_with_dependency_0 = module_1.ConstructMeWithDependency(some_argument_type_0)"""
+    test_cluster = TestClusterGenerator(
+        "tests.fixtures.cluster.simple_dependencies"
+    ).generate_cluster()
+    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster)
+    content = ExportProvider.get_exporter().export_sequences_to_str(testcases)
+    assert (
+        content == testcase_seed
+    ), f"=======\n{content}\n=== differs from ===\n{testcase_seed}"
