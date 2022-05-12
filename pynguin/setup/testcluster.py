@@ -46,6 +46,15 @@ class TestCluster(ABC):
             The set of all accessible objects under test
         """
 
+    @property
+    @abstractmethod
+    def all_accessible_objects(self) -> OrderedSet[GenericAccessibleObject]:
+        """Provides all accessible objects.
+
+        Returns:
+            The set of all accessible objects
+        """
+
     @abstractmethod
     def num_accessible_objects_under_test(self) -> int:
         """Provide the number of accessible objects under test.
@@ -204,6 +213,16 @@ class FullTestCluster(TestCluster):
     def accessible_objects_under_test(self) -> OrderedSet[GenericAccessibleObject]:
         return self._accessible_objects_under_test
 
+    @property
+    def all_accessible_objects(self) -> OrderedSet[GenericAccessibleObject]:
+        ret_set: OrderedSet[GenericAccessibleObject] = OrderedSet()
+        ret_set = ret_set.union(self._accessible_objects_under_test)
+        for vals in self._modifiers.values():
+            ret_set = ret_set.union(vals)
+        for vals in self._generators.values():
+            ret_set = ret_set.union(vals)
+        return ret_set
+
     def num_accessible_objects_under_test(self) -> int:
         return len(self._accessible_objects_under_test)
 
@@ -272,6 +291,11 @@ class ExpandableTestCluster(FullTestCluster):
         self._name_idx: Dict[str, List[GenericAccessibleObject]] = {}
         self._module_aliases: Dict[str, str] = {}
 
+    @property
+    def all_accessible_objects(self) -> OrderedSet[GenericAccessibleObject]:
+        ret_set = super().all_accessible_objects
+        return ret_set.union(self._backup_accessible_objects)
+
     def set_backup_mode(self, mode: bool):
         """
         Put the test cluster in backup mode, that is, don't add anything to
@@ -283,6 +307,15 @@ class ExpandableTestCluster(FullTestCluster):
 
         """
         self._backup_mode = mode
+
+    def get_backup_mode(self) -> bool:
+        """
+        Returns whether we are currently in backup mode
+
+        Returns:
+            the current backup mode
+        """
+        return self._backup_mode
 
     def add_module_alias(self, orig_module_name: str, alias_in_file: str):
         """Keep track of module aliases
@@ -547,6 +580,17 @@ class FilteredTestCluster(TestCluster):
             # Should never happen, just in case everything is already covered?
             return self._delegate.accessible_objects_under_test
         return OrderedSet(accessibles)
+
+    @property
+    def all_accessible_objects(self) -> OrderedSet[GenericAccessibleObject]:
+        # TODO(clemieux): These are not filtered
+        ret_set: OrderedSet[GenericAccessibleObject] = OrderedSet()
+        ret_set = ret_set.union(self.accessible_objects_under_test)
+        for vals in self.modifiers.values():
+            ret_set = ret_set.union(vals)
+        for vals in self.generators.values():
+            ret_set = ret_set.union(vals)
+        return ret_set
 
     def num_accessible_objects_under_test(self) -> int:
         return self._delegate.num_accessible_objects_under_test()

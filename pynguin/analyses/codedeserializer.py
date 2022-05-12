@@ -385,7 +385,8 @@ class _StatementDeserializer:
         except AttributeError:
             logger.debug("Can't get callid for %s", ast.unparse(call))
             call_id = ""
-        for obj in self._test_cluster.accessible_objects_under_test:
+
+        for obj in self._test_cluster.all_accessible_objects:
             if isinstance(obj, GenericConstructor):
                 owner = str(obj.owner).rsplit(".", maxsplit=1)[-1].split("'")[0]
                 if call_name == owner and call_id not in self._ref_dict:
@@ -402,6 +403,8 @@ class _StatementDeserializer:
                 if call_name == obj.function_name:
                     return obj
         # Last ditch effort to retrieve methods if we have an expandable clutser
+        # TODO: given that we're now looking through all objects for the
+        # expandable cluster... is any of this even necessary?
         if config.configuration.seeding.allow_expandable_cluster:
             if call_id in self._ref_dict:
                 var_type = self._ref_dict[call_id].type

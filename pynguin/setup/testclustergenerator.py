@@ -316,12 +316,16 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
                 # If we're making an expandable cluster, keep track of methods not
                 # directly defined in the object under test as modifiers of this class.
                 #
-                # If we're fully expanding the cluster, don't go into backup mode.
-                self._test_cluster.set_backup_mode(  # type: ignore
-                    not config.configuration.seeding.expand_cluster
-                )
-                self._test_cluster.add_modifier(klass, generic_method)
-                self._test_cluster.set_backup_mode(False)  # type: ignore
+                # If we're already in backup mode, no need to set/unset it
+                if self._test_cluster.get_backup_mode():  # type: ignore
+                    self._test_cluster.add_modifier(klass, generic_method)
+                else:
+                    # If we're fully expanding the cluster, don't go into backup mode.
+                    self._test_cluster.set_backup_mode(  # type: ignore
+                        not config.configuration.seeding.expand_cluster
+                    )
+                    self._test_cluster.add_modifier(klass, generic_method)
+                    self._test_cluster.set_backup_mode(False)  # type: ignore
                 # TODO(clemieux): this doesn't keep track of callable dependencies...
                 # in most cases if it's a class we're directly inheriting, we should
                 # be importing that class and resolving the dependencies there.
