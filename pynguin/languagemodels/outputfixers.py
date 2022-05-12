@@ -263,8 +263,11 @@ class StmtRewriter(ast.NodeTransformer):
                 func.value = attr_lhs
         new_args = []
         for arg in call.args:
-            arg_value = self.visit(arg)
-            new_args.append(self.replace_with_varname(arg_value))
+            if isinstance(arg, ast.Starred):
+                new_args.append(self.visit(arg))
+            else:
+                arg_value = self.visit(arg)
+                new_args.append(self.replace_with_varname(arg_value))
         new_kwargs = []
         for kwarg in call.keywords:
             kwarg_value = self.visit(kwarg.value)

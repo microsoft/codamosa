@@ -258,6 +258,23 @@ src_13_res = """def test_Uniqueness():
     assert u._set == {0, 1, 2, 3, -1, False, True}
 """
 
+src_14 = """def test_foo():
+    int_0 = 0
+    int_1 = 1
+    list_0 = [var_0, var_1]
+    dict_0 = {var_0: var_1, var_1: var_0}
+    var_0 = foo(*list_0, **dict_0)
+"""
+
+src_14_res = """def test_foo():
+    int_0 = 0
+    int_1 = 1
+    list_0 = [var_0, var_1]
+    dict_0 = {var_0: var_1, var_1: var_0}
+    var_0 = foo(*list_0, **dict_0)
+"""
+
+
 
 @pytest.mark.parametrize(
     "original_src,result_src",
@@ -275,6 +292,7 @@ src_13_res = """def test_Uniqueness():
         (src_11, src_11_res),
         (src_12, src_12_res),
         (src_13, src_13_res),
+        (src_14, src_14_res),
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):
