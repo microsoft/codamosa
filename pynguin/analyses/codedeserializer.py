@@ -408,8 +408,9 @@ class _StatementDeserializer:
         if config.configuration.seeding.allow_expandable_cluster:
             if call_id in self._ref_dict:
                 var_type = self._ref_dict[call_id].type
-                if self._ref_dict[call_id] is None:
+                if self._ref_dict[call_id].type is None:
                     logger.error('The entry for %s is None', call_id)
+                    return None
                 method = self._test_cluster.try_resolve_method_call(  # type: ignore
                     var_type, call_name
                 )
