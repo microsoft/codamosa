@@ -37,14 +37,15 @@ class AbstractMOSATestStrategy(
         print("Getting llm mutants...")
         offspring_population: list[tcc.TestCaseChromosome] = []
         best_so_far = self._archive.solutions
-        for chromosome in best_so_far:
-            mutants = self._test_factory.get_model_mutants(chromosome.test_case)
-            offspring_population.extend(
-                [
-                    tcc.TestCaseChromosome(mutant, self._test_factory)
-                    for mutant in mutants
-                ]
-            )
+        while len(offspring_population) < 15:
+            for chromosome in best_so_far:
+                mutants = self._test_factory.get_model_mutants(chromosome.test_case)
+                offspring_population.extend(
+                    [
+                        tcc.TestCaseChromosome(mutant, self._test_factory)
+                        for mutant in mutants
+                    ]
+                )
         return offspring_population
 
     def _breed_next_generation(self) -> list[tcc.TestCaseChromosome]:

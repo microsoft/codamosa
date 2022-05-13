@@ -68,6 +68,8 @@ class MOSATestStrategy(AbstractMOSATestStrategy):
                 its_without_update = 0
             last_num_covered_goals = num_covered_goals
             self.evolve(its_without_update > 25)
+            if its_without_update > 25:
+                its_without_update = 0
             self.after_search_iteration(self.create_test_suite(self._archive.solutions))
 
         self.after_search_finish()

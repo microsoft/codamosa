@@ -75,7 +75,7 @@ class _RandomMutationVisitor(ast.NodeVisitor):
                 isinstance(stmt.value, ast.Call)
                 or (
                     isinstance(stmt.value, ast.Constant)
-                    and isinstance(stmt.value.value, str)
+                    and (isinstance(stmt.value.value, str) or stmt.value is None)
                 )
             )
         ]

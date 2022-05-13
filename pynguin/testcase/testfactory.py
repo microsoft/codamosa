@@ -577,7 +577,6 @@ class TestFactory:
             a list of test_cases, as mutated by the large language model.
         """
         mutated_tests = model.languagemodel.mutate_test_case(test_case)
-        print(f"Here's what we've got to parse...\n {mutated_tests}")
         (
             testcases,
             parsed_statements,
