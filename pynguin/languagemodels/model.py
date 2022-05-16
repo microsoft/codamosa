@@ -202,7 +202,7 @@ class _OpenAILanguageModel:
         # context = self._get_maximal_source_context(
         #     used_tokens=approx_number_tokens(function_to_mutate)
         # )
-        context=""
+        context = ""
         url = f"https://api.openai.com/v1/engines/{self.edit_model}/edits"
 
         payload = {
@@ -286,7 +286,7 @@ class _OpenAILanguageModel:
         str_test_case = exporter.export_sequences_to_str([test_case])
         ast_test_case_module = ast.parse(str_test_case)
         function_with_placeholder = add_placeholder(ast_test_case_module)
-        print("Here's the function with placeholder:\n ",function_with_placeholder)
+        # print("Here's the function with placeholder:\n ",function_with_placeholder)
         mutated = self._call_mutate(function_with_placeholder)
 
         test_start_idxs = [
@@ -297,16 +297,17 @@ class _OpenAILanguageModel:
         if len(test_start_idxs) == 0:
             return str_test_case
         mutated_test_as_str = "\n".join(mutated.split("\n")[test_start_idxs[0] :])
-        print("Here's what codex outputted:\n", mutated_test_as_str)
+        # print("Here's what codex outputted:\n", mutated_test_as_str)
         mutated_tests_fixed: Dict[str, str] = rewrite_tests(mutated_test_as_str)
         return "\n\n".join(mutated_tests_fixed.values())
 
-    def target_test_case(self, gao: GenericCallableAccessibleObject) -> str:
+    def target_test_case(self, gao: GenericCallableAccessibleObject, context="") -> str:
         """Provides a test case targeted to the function/method/constructor
         specified in `gao`
 
         Args:
             gao: a GenericCallableAccessibleObject to target the test to
+            context: extra context to pass before the function header
 
         Returns:
             A generated test case as natural language.
@@ -362,7 +363,9 @@ class _OpenAILanguageModel:
             except OSError:
                 start_line, end_line = -1, -1
 
-        completion = self._call_completion(function_header, start_line, end_line)
+        completion = self._call_completion(
+            context + function_header, start_line, end_line
+        )
         generated_tests: Dict[str, str] = rewrite_tests(function_header + completion)
         for test_name in generated_tests:
             if test_name in function_header:

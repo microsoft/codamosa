@@ -275,7 +275,6 @@ src_14_res = """def test_foo():
 """
 
 
-
 @pytest.mark.parametrize(
     "original_src,result_src",
     [

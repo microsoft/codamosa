@@ -8,12 +8,13 @@
 from __future__ import annotations
 
 import ast
+import inspect
 import logging
 import os
 from abc import abstractmethod
 from pathlib import Path
 from pkgutil import iter_modules
-from typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, AnyStr, Dict, List, Optional, Tuple, Union, cast
 
 from _py_abc import ABCMeta
 from ordered_set import OrderedSet
@@ -21,6 +22,7 @@ from setuptools import find_packages
 
 import pynguin.configuration as config
 import pynguin.ga.testcasechromosome as tcc
+import pynguin.ga.testsuitechromosome as tsc
 import pynguin.testcase.defaulttestcase as dtc
 import pynguin.testcase.testcase as tc
 import pynguin.testcase.testfactory as tf
@@ -28,15 +30,16 @@ import pynguin.utils.statistics.statistics as stat
 from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
 from pynguin.ga.computations import compute_branch_coverage
 from pynguin.generation.export.pytestexporter import PyTestExporter
-from pynguin.languagemodels.model import _OpenAILanguageModel
 from pynguin.testcase.execution import ExecutionResult, TestCaseExecutor
 from pynguin.utils import randomness
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericCallableAccessibleObject,
 )
+from pynguin.utils.report import LineAnnotation, get_coverage_report
 from pynguin.utils.statistics.runtimevariable import RuntimeVariable
 
 if TYPE_CHECKING:
+    from pynguin.languagemodels.model import _OpenAILanguageModel
     from pynguin.setup.testcluster import TestCluster
 
 
@@ -385,20 +388,35 @@ class _LargeLanguageModelSeeding:
         Returns:
             A new generated test case, or None if a test case could not be parsed
         """
+
         assert self._prompt_gaos is not None
         assert len(self._prompt_gaos) > 0
         prompt_gao = randomness.choice(list(self._prompt_gaos.keys()))
         self._prompt_gaos[prompt_gao] -= 1
         if self._prompt_gaos[prompt_gao] == 0:
             self._prompt_gaos.pop(prompt_gao)
-        str_test_case = self._model.target_test_case(prompt_gao)
+        return self.get_targeted_testcase(prompt_gao)
+
+    def get_targeted_testcase(
+        self, prompt_gao: GenericCallableAccessibleObject, context=""
+    ) -> Optional[tc.TestCase]:
+        """
+        Generate a new test case aimed at prompt_gao
+
+        Args:
+            prompt_gao: the GenericCallableAccessibleObject to target
+            context: any additional context to pass
+
+        Returns:
+            A new generated test case, or None if a test case could not be parsed
+        """
+        str_test_case = self._model.target_test_case(prompt_gao, context=context)
         logger.info("Codex-generated testcase:\n%s", str_test_case)
         (
             testcases,
             parsed_statements,
             parsable_statements,
         ) = deserialize_code_to_testcases(str_test_case, self._test_cluster)
-
         if len(testcases) > 0:
             testcase = testcases[0]
             exporter = PyTestExporter(wrap_code=False)
@@ -419,12 +437,85 @@ class _LargeLanguageModelSeeding:
             Whether or not test cases have been found
         """
         if self._prompt_gaos is None:
-            self._prompt_gaos = {
-                gao: self._max_samples_per_prompt  # type: ignore
-                for gao in self._test_cluster.accessible_objects_under_test
-                if issubclass(type(gao), GenericCallableAccessibleObject)
-            }
+            self._setup_gaos()
+            assert self._prompt_gaos is not None
         return len(self._prompt_gaos) > 0
+
+    def _setup_gaos(self):
+        """Sets up the prompt gaos if they are unset."""
+        self._prompt_gaos = {
+            gao: self._max_samples_per_prompt  # type: ignore
+            for gao in self._test_cluster.accessible_objects_under_test
+            if issubclass(type(gao), GenericCallableAccessibleObject)
+        }
+
+    def target_uncovered_functions(
+        self, test_suite: tsc.TestSuiteChromosome, num_samples: int
+    ) -> List[tc.TestCase]:
+        """Generate test cases for functions that are less covered by `test_suite`
+
+        Args:
+            test_suite: current best test suite
+            num_samples: number of test cases to sample
+
+        Returns:
+            a list of Codex-generated test cases.
+        """
+        assert self.executor is not None
+        if self._prompt_gaos is None:
+            self._setup_gaos()
+            assert self._prompt_gaos is not None
+
+        line_annotations: List[LineAnnotation] = get_coverage_report(
+            test_suite,
+            self.executor,
+            config.configuration.statistics_output.coverage_metrics,
+        ).line_annotations
+
+        def coverage_in_range(start_line: int, end_line: int) -> Tuple[int, int]:
+            """Helper coverage to determine the coverage of consecutive lines.
+
+            Args:
+                start_line: first line to consider, inclusive
+                end_line: last line to consider, inclusive
+
+            Returns:
+                the total number of covered elements (branches, lines) in the line
+                range, as well as the total number of coverable elements in that range.
+            """
+            total_coverage_points = 0
+            covered_coverage_points = 0
+            for line_annot in line_annotations:
+                if start_line <= line_annot.line_no <= end_line:
+                    total_coverage_points += line_annot.total.existing
+                    covered_coverage_points += line_annot.total.covered
+            return covered_coverage_points, total_coverage_points
+
+        ordered_gaos: List[GenericCallableAccessibleObject] = []
+        ordered_selection_probabilities: List[float] = []
+
+        for gao in self._prompt_gaos.keys():
+            if isinstance(gao, GenericCallableAccessibleObject):
+                source_lines, start_line = inspect.getsourcelines(gao.callable)
+                covered, total = coverage_in_range(
+                    start_line, start_line + len(source_lines) - 1
+                )
+                ordered_gaos.append(gao)
+                ordered_selection_probabilities.append(1 - (covered / total))
+
+        denominator = sum(ordered_selection_probabilities)
+        ordered_selection_probabilities = [
+            p / denominator for p in ordered_selection_probabilities
+        ]
+
+        targeted_test_cases = []
+        for gao in randomness.choices(
+            ordered_gaos, weights=ordered_selection_probabilities, k=num_samples
+        ):
+            test_case = self.get_targeted_testcase(gao)
+            if test_case is not None:
+                targeted_test_cases.append(test_case)
+        return targeted_test_cases
 
 
 class _InitialPopulationSeeding:
