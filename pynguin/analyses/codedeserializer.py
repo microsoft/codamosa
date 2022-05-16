@@ -333,6 +333,8 @@ class _StatementDeserializer:
         Returns:
             The corresponding statement.
         """
+        # This part is still necessary to handle any lone function calls. Otherwise
+        # They will be caught in the try/except block below.
         if config.configuration.seeding.allow_expandable_cluster:
             logger.debug("Trying to find in expandable cluster")
             gen_callable = self._test_cluster.try_resolve_call(  # type: ignore
@@ -349,6 +351,8 @@ class _StatementDeserializer:
         if gen_callable is None:
             logger.info("No such function found: %s", ast.unparse(call.func))
             return None
+        if config.configuration.seeding.allow_expandable_cluster:
+            self._test_cluster.promote_object(gen_callable)  # type: ignore
         return self.assemble_stmt_from_gen_callable(gen_callable, call)
 
     def find_gen_callable(

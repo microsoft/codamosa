@@ -364,7 +364,7 @@ class ExpandableTestCluster(FullTestCluster):
             else:
                 self._name_idx[func_name] = [func]
 
-    def _promote_object(self, func: GenericAccessibleObject):
+    def promote_object(self, func: GenericAccessibleObject):
         """
         Promotes the object to go into generators/modifiers.
 
@@ -474,10 +474,11 @@ class ExpandableTestCluster(FullTestCluster):
         if call_name in self._name_idx:
             # TODO(!!!): be smarter than just taking the first one?
             gao_to_return = self._name_idx[call_name][0]
-            self._promote_object(gao_to_return)
+            self.promote_object(gao_to_return)
             return gao_to_return
         return None
 
+    # TODO(clemieux): this is not used anywhere.
     def try_resolve_method_call(
         self, obj_type: type, call_name: str
     ) -> Optional[GenericAccessibleObject]:
@@ -494,7 +495,7 @@ class ExpandableTestCluster(FullTestCluster):
         idx = obj_type.__name__ + "." + call_name
         if idx in self._name_idx:
             gao_to_return = self._name_idx[idx][0]
-            self._promote_object(gao_to_return)
+            self.promote_object(gao_to_return)
             return gao_to_return
         return None
 
