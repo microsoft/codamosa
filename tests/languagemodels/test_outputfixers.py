@@ -274,6 +274,18 @@ src_14_res = """def test_foo():
     var_0 = foo(*list_0, **dict_0)
 """
 
+src_15 = """def test_module_qualification():
+    ast_0 = typed_ast._ast3.parse("stuff")
+    chained_result = ast_0.fix_missing_locations().more_things()
+"""
+
+src_15_res = """def test_module_qualification():
+    var_0 = 'stuff'
+    ast_0 = typed_ast._ast3.parse(var_0)
+    var_1 = ast_0.fix_missing_locations()
+    chained_result = var_1.more_things()
+"""
+
 
 @pytest.mark.parametrize(
     "original_src,result_src",
@@ -292,6 +304,7 @@ src_14_res = """def test_foo():
         (src_12, src_12_res),
         (src_13, src_13_res),
         (src_14, src_14_res),
+        (src_15, src_15_res),
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):

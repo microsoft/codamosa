@@ -254,13 +254,7 @@ class StmtRewriter(ast.NodeTransformer):
         """
         func = call.func
         if isinstance(func, ast.Attribute):
-            attr_lhs = func.value
-            if isinstance(attr_lhs, ast.Name):
-                pass
-            else:
-                lhs_value = self.visit(attr_lhs)
-                attr_lhs = self.replace_with_varname(lhs_value)
-                func.value = attr_lhs
+            func = self.visit(func)
         new_args = []
         for arg in call.args:
             if isinstance(arg, ast.Starred):
@@ -289,6 +283,25 @@ class StmtRewriter(ast.NodeTransformer):
         return ast.Subscript(
             value=self.visit(subscript.value), slice=subscript.slice, ctx=subscript.ctx
         )
+
+    def visit_Attribute(self, node: ast.Attribute) -> ast.Attribute:
+        """When visiting attribute nodes, keep repeated dereferences if they are
+        just attribute/field accesses, but separate calls into their own functions.
+
+        This may get us into trouble with separating out field/property accesses but
+        it saves us from stripping out modules into variables.
+
+        E.g.
+            typed_ast._ast3.parse(var_0) should not be transformed
+            ast_0.fix_stuff().foo() should have ast_0.fix_stuff() put into a new var
+
+        Args:
+            node: the attribute node to visit.
+
+        Returns:
+            the transformed node
+        """
+        return self.visit_only_calls_subnodes(node)
 
     def visit_Assign(self, assign: ast.Assign):
         """
