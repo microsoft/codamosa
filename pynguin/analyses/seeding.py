@@ -30,6 +30,7 @@ import pynguin.utils.statistics.statistics as stat
 from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
 from pynguin.ga.computations import compute_branch_coverage
 from pynguin.generation.export.pytestexporter import PyTestExporter
+from pynguin.languagemodels.outputfixers import fixup_imports
 from pynguin.testcase.execution import ExecutionResult, TestCaseExecutor
 from pynguin.utils import randomness
 from pynguin.utils.generic.genericaccessibleobject import (
@@ -452,6 +453,8 @@ class _LargeLanguageModelSeeding:
     def target_uncovered_functions(
         self, test_suite: tsc.TestSuiteChromosome, num_samples: int
     ) -> List[tc.TestCase]:
+
+        # pylint: disable=R0914
         """Generate test cases for functions that are less covered by `test_suite`
 
         Args:
@@ -518,11 +521,38 @@ class _LargeLanguageModelSeeding:
                 p / denominator for p in ordered_selection_probabilities
             ]
 
+        if config.configuration.codamosa.test_case_context in (
+            config.TestCaseContext.SMALLEST,
+            config.TestCaseContext.RANDOM,
+        ):
+            exporter = PyTestExporter(wrap_code=False)
+            ctx_test_cases = [
+                (
+                    fixup_imports(exporter.export_sequences_to_str([tcc.test_case])),
+                    tcc.size(),
+                )
+                for tcc in test_suite.test_case_chromosomes
+                if tcc.size() > 0
+            ]
+            ctx_test_cases.sort(key=lambda x: x[1])
+
         targeted_test_cases = []
         for gao in randomness.choices(
             ordered_gaos, weights=ordered_selection_probabilities, k=num_samples
         ):
-            test_case = self.get_targeted_testcase(gao)
+            if (
+                config.configuration.codamosa.test_case_context
+                == config.TestCaseContext.SMALLEST
+            ):
+                context = ctx_test_cases[0][0] + "\n\n"
+            elif (
+                config.configuration.codamosa.test_case_context
+                == config.TestCaseContext.RANDOM
+            ):
+                context = randomness.choice(ctx_test_cases)[0] + "\n\n"
+            else:
+                context = ""
+            test_case = self.get_targeted_testcase(gao, context)
             if test_case is not None:
                 targeted_test_cases.append(test_case)
         return targeted_test_cases

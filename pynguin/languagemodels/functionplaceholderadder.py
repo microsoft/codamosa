@@ -8,10 +8,10 @@
 
 import ast
 import logging
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
-import pynguin.configuration as config
 import pynguin.utils.randomness as randomness
+from pynguin.languagemodels.outputfixers import fixup_imports
 
 logger = logging.getLogger()
 
@@ -125,21 +125,6 @@ def add_placeholder(node: ast.Module) -> str:
     function_name_mutated, mutated = res
 
     # Then, fixup the imports
-    imports: List[ast.Import] = [
-        elem for elem in node.body if isinstance(elem, ast.Import)
-    ]
-    quals_to_replace = {}
-    for import_ in imports:
-        for name in import_.names:
-            if name.asname is None:
-                continue
-            if config.configuration.module_name in name.name:
-                quals_to_replace[name.asname + "."] = ""
-            else:
-                pass
-                # quals_to_replace[name.asname + "."] = name.name + "."
-
-    for alias_to_replace, replace_name in quals_to_replace.items():
-        mutated = mutated.replace(alias_to_replace, replace_name)
+    mutated = fixup_imports(mutated, node)
 
     return mutated

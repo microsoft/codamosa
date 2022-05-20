@@ -7,7 +7,9 @@
 
 import ast
 import logging
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
+
+from pynguin import configuration as config
 
 logger = logging.getLogger()
 
@@ -595,3 +597,41 @@ def rewrite_tests(source: str) -> Dict[str, str]:
                 )
 
     return return_tests
+
+
+def fixup_imports(test_case_str: str, node: Optional[ast.Module] = None):
+    """
+    Remove qualified imports for the module under test.
+
+    Args:
+        test_case_str: the test case as string to fixup
+        node: the ast.Module node corresponding to test_case_str/its parent
+
+    Returns:
+        test_case_str with the calls to functions in the test module de-qualified
+    """
+    if node is None:
+        node = ast.parse(test_case_str)
+    imports: List[ast.Import] = [
+        elem for elem in node.body if isinstance(elem, ast.Import)
+    ]
+    quals_to_replace = {}
+    for import_ in imports:
+        for name in import_.names:
+            if name.asname is None:
+                continue
+            if config.configuration.module_name in name.name:
+                quals_to_replace[name.asname + "."] = ""
+            else:
+                pass
+                # quals_to_replace[name.asname + "."] = name.name + "."
+    test_case_str = "\n".join(
+        [
+            line
+            for line in test_case_str.split("\n")
+            if f"import {config.configuration.module_name}" not in line
+        ]
+    )
+    for alias_to_replace, replace_name in quals_to_replace.items():
+        test_case_str = test_case_str.replace(alias_to_replace, replace_name)
+    return test_case_str

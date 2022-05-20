@@ -159,6 +159,20 @@ class Selection(str, enum.Enum):
     """Tournament selection.  Use `tournament_size` to set size."""
 
 
+class TestCaseContext(str, enum.Enum):
+    """What kind of extra context to pass to the LLM when
+    generating test cases for CodaMOSA"""
+
+    NONE = "NONE"
+    """Don't add any additional context."""
+
+    SMALLEST = "SMALLEST"
+    """Add the smallest 'winning' test case as context"""
+
+    RANDOM = "RANDOM"
+    """Add a random test case as context"""
+
+
 # pylint:disable=too-many-instance-attributes
 @dataclasses.dataclass
 class StatisticsOutputConfiguration:
@@ -351,6 +365,9 @@ class CodaMosaConfiguration:
 
     test_cases_log_path: str = ""
     """If non-empty, the path to which to log all the generated test cases"""
+
+    test_case_context: TestCaseContext = TestCaseContext.NONE
+    """What extra context to pass to the LLM when querying for a new test case"""
 
 
 @dataclasses.dataclass
