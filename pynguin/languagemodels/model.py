@@ -8,7 +8,9 @@ import ast
 import inspect
 import json
 import logging
+import os
 import string
+from datetime import datetime
 from typing import Dict, List
 
 import requests
@@ -80,12 +82,39 @@ class _OpenAILanguageModel:
         self._authorization_key: str
         self._complete_model: str
         self._edit_model: str
+        self._log_path: str = ""
         # TODO(clemieux): make configurable; adding a fudge factor
         self._max_query_len = 4096 - 200
         # TODO(clemieux): make configurable
-        self._temperature = 1
+        self._temperature: float
         self._token_len_cache = {}
         self.num_codex_calls = 0
+
+    @property
+    def temperature(self) -> float:
+        """Provides the temperature being used
+
+        Returns:
+            the temperature being used
+        """
+        return self._temperature
+
+    @temperature.setter
+    def temperature(self, temperature: float):
+        self._temperature = temperature
+
+    @property
+    def log_path(self) -> str:
+        """Provides the current path where results are being logged
+
+        Returns:
+            The path where results are being logged
+        """
+        return self._log_path
+
+    @log_path.setter
+    def log_path(self, log_path: str):
+        self._log_path = log_path
 
     @property
     def test_src(self) -> str:
@@ -335,7 +364,7 @@ class _OpenAILanguageModel:
                 ):
                     source_lines, start_line = inspect.getsourcelines(method_gao.owner)  # type: ignore
                     end_line = start_line + len(source_lines) - 1
-            except OSError:
+            except (TypeError, OSError):
                 start_line, end_line = -1, -1
         elif gao.is_function():
             fn_gao: GenericFunction = gao  # type: ignore
@@ -346,7 +375,7 @@ class _OpenAILanguageModel:
             try:
                 source_lines, start_line = inspect.getsourcelines(fn_gao.callable)
                 end_line = start_line + len(source_lines) - 1
-            except OSError:
+            except (TypeError, OSError):
                 start_line, end_line = -1, -1
         elif gao.is_constructor():
             constructor_gao: GenericConstructor = gao  # type: ignore
@@ -360,12 +389,22 @@ class _OpenAILanguageModel:
                     constructor_gao.generated_type()  # type: ignore
                 )
                 end_line = start_line + len(source_lines)
-            except OSError:
+            except (TypeError, OSError):
                 start_line, end_line = -1, -1
 
         completion = self._call_completion(
             context + function_header, start_line, end_line
         )
+        if self.log_path != "":
+            with open(
+                os.path.join(self.log_path, "codex_generations.py"),
+                "a+",
+                encoding="UTF-8",
+            ) as log_file:
+                log_file.write(f"\n\n# Generated at {datetime.now()}\n")
+                log_file.write(function_header + completion)
+        else:
+            assert False
         generated_tests: Dict[str, str] = rewrite_tests(function_header + completion)
         for test_name in generated_tests:
             if test_name in function_header:

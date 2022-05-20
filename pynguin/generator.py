@@ -207,6 +207,8 @@ def _setup_language_model_seeding(
 ) -> bool:
     """Sets up the large language model seeding"""
     # TODO(clemieux): tests?
+    # TODO(clemieux): needs cleaning, ideally by removing support for
+    # independent large language model seeding. Keeping now for experiment purposes.
     if (
         config.configuration.seeding.large_language_model_seeding
         or config.configuration.seeding.large_language_model_mutation
@@ -236,24 +238,52 @@ def _setup_language_model_seeding(
             generate_model = config_dict["GenerateModel"]
             mutate_model = config_dict["MutateModel"]
 
+        model.languagemodel.temperature = 1
         model.languagemodel.authorization_key = authorization_key
         model.languagemodel.complete_model = generate_model
         model.languagemodel.edit_model = mutate_model
-
-        module = importlib.import_module(config.configuration.module_name)
-        module_path = module.__file__
-        if module_path is None:
-            _LOGGER.error("Module file does not exist")
+    elif config.configuration.algorithm == config.Algorithm.CODAMOSA:
+        if (
+            config.configuration.codamosa.authorization_key == ""
+            or config.configuration.codamosa.model_name == ""
+        ):
+            _LOGGER.error(
+                "If --algorithm CODAMOSA is used, --authorization_key and "
+                "--model_name must be set."
+            )
             return False
-        if not os.path.isfile(module_path):
-            _LOGGER.error("The module file %s does not exist", module_path)
+        # Do these all need to be instance variables???
+        model.languagemodel.temperature = config.configuration.codamosa.temperature
+        model.languagemodel.authorization_key = (
+            config.configuration.codamosa.authorization_key
+        )
+        model.languagemodel.complete_model = config.configuration.codamosa.model_name
+        if (
+            config.configuration.codamosa.test_cases_log_path != ""
+            and not os.path.isdir(config.configuration.codamosa.test_cases_log_path)
+        ):
+            _LOGGER.error(
+                "The argument to --test_cases_log_path (%s) is not a valid directory.",
+                config.configuration.codamosa.test_cases_log_path,
+            )
             return False
-        with open(module_path, encoding="UTF-8") as module_file:
-            model.languagemodel.test_src = module_file.read()
-        seeding.languagemodelseeding.model = model.languagemodel
-        seeding.languagemodelseeding.test_cluster = test_cluster
-        seeding.languagemodelseeding.executor = executor
+        model.languagemodel.log_path = config.configuration.codamosa.test_cases_log_path
+    else:
+        return True
 
+    module = importlib.import_module(config.configuration.module_name)
+    module_path = module.__file__
+    if module_path is None:
+        _LOGGER.error("Module file does not exist")
+        return False
+    if not os.path.isfile(module_path):
+        _LOGGER.error("The module file %s does not exist", module_path)
+        return False
+    with open(module_path, encoding="UTF-8") as module_file:
+        model.languagemodel.test_src = module_file.read()
+    seeding.languagemodelseeding.model = model.languagemodel
+    seeding.languagemodelseeding.test_cluster = test_cluster
+    seeding.languagemodelseeding.executor = executor
     return True
 
 

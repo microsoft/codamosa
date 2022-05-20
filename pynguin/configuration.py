@@ -44,6 +44,10 @@ class Algorithm(str, enum.Enum):
     """The many-objective sorting algorithm (cf. Panichella et al. Reformulating Branch
     Coverage as a Many-Objective Optimization Problem.  Proc. ICST 2015)."""
 
+    # TODO(clemieux): elaborate
+    CODAMOSA = "CODAMOSA"
+    """MOSA + Codex :)"""
+
     RANDOM = "RANDOM"
     """A feedback-direct random test generation approach similar to the algorithm
     proposed by Randoop (cf. Pacheco et al. Feedback-directed random test generation.
@@ -327,6 +331,29 @@ class SeedingConfiguration:
 
 
 @dataclasses.dataclass
+class CodaMosaConfiguration:
+    """Configuration for CodaMosa"""
+
+    authorization_key: str = ""
+    """The authorization key to call OpenAI with"""
+
+    model_name: str = ""
+    """The OpenAI Model to use for completions"""
+
+    max_plateau_len: int = 25
+    """The number of iterations to let go on before trying to do LLM Seeding"""
+
+    temperature: float = 1
+    """The temperature to use when querying the model"""
+
+    num_seeds_to_inject: int = 10
+    """Number of seeds to query the OpenAI model for"""
+
+    test_cases_log_path: str = ""
+    """If non-empty, the path to which to log all the generated test cases"""
+
+
+@dataclasses.dataclass
 class MIOPhaseConfiguration:
     """Configuration for a phase of MIO."""
 
@@ -591,6 +618,11 @@ class Configuration:
 
     random: RandomConfiguration = dataclasses.field(default_factory=RandomConfiguration)
     """Configuration used for the RANDOM algorithm."""
+
+    codamosa: CodaMosaConfiguration = dataclasses.field(
+        default_factory=CodaMosaConfiguration
+    )
+    """Condiguration used for CodaMOSA algorithm."""
 
 
 # Singleton instance of the configuration.

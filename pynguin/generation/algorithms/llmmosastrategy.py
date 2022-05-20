@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from ordered_set import OrderedSet
 
@@ -22,6 +22,7 @@ from pynguin.ga.operators.ranking.crowdingdistance import (
 )
 from pynguin.generation.algorithms.abstractmosastrategy import AbstractMOSATestStrategy
 from pynguin.utils import randomness
+from pynguin.utils.exceptions import ConstructionFailedException
 from pynguin.utils.statistics.runtimevariable import RuntimeVariable
 
 if TYPE_CHECKING:
@@ -69,7 +70,7 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             else:
                 its_without_update = 0
             last_num_covered_goals = num_covered_goals
-            if its_without_update > 25:
+            if its_without_update > config.configuration.codamosa.max_plateau_len:
                 its_without_update = 0
                 self.evolve_targeted(self.create_test_suite(self._archive.solutions))
             else:
@@ -89,7 +90,9 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
         Args:
             test_suite: the test suite to base coverage off of.
         """
-        test_cases = languagemodelseeding.target_uncovered_functions(test_suite, 10)
+        test_cases = languagemodelseeding.target_uncovered_functions(
+            test_suite, config.configuration.codamosa.num_seeds_to_inject
+        )
         test_case_chromosomes = [
             tcc.TestCaseChromosome(test_case, self.test_factory)
             for test_case in test_cases
@@ -98,13 +101,28 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             len(test_case_chromosomes)
             < config.configuration.search_algorithm.population
         ):
-            to_mutate = randomness.choice(test_cases)
-            offspring = cast(tcc.TestCaseChromosome, to_mutate.clone())
-            self._mutate(offspring)
-            if offspring.has_changed() and offspring.size() > 0:
-                test_case_chromosomes.append(offspring)
+            offspring_1 = randomness.choice(test_case_chromosomes).clone()
 
-        self.evolve_common(test_cases)
+            offspring_2 = randomness.choice(test_case_chromosomes).clone()
+
+            if (
+                randomness.next_float()
+                <= config.configuration.search_algorithm.crossover_rate
+            ):
+                try:
+                    self._crossover_function.cross_over(offspring_1, offspring_2)
+                except ConstructionFailedException:
+                    self._logger.debug("CrossOver failed.")
+                    continue
+
+            self._mutate(offspring_1)
+            if offspring_1.has_changed() and offspring_1.size() > 0:
+                test_case_chromosomes.append(offspring_1)
+            self._mutate(offspring_2)
+            if offspring_2.has_changed() and offspring_2.size() > 0:
+                test_case_chromosomes.append(offspring_2)
+
+        self.evolve_common(test_case_chromosomes)
 
     def evolve(self) -> None:
         """Runs one evolution step."""

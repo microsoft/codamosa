@@ -33,6 +33,7 @@ from pynguin.ga.operators.selection.rankselection import RankSelection
 from pynguin.ga.operators.selection.selection import SelectionFunction
 from pynguin.ga.operators.selection.tournamentselection import TournamentSelection
 from pynguin.generation.algorithms.dynamosastrategy import DynaMOSATestStrategy
+from pynguin.generation.algorithms.llmmosastrategy import CodaMOSATestStrategy
 from pynguin.generation.algorithms.mioteststrategy import MIOTestStrategy
 from pynguin.generation.algorithms.mosastrategy import MOSATestStrategy
 from pynguin.generation.algorithms.randomsearchstrategy import (
@@ -118,6 +119,7 @@ class TestSuiteGenerationAlgorithmFactory(
     """A factory for a search algorithm generating test-suites."""
 
     _strategies: dict[config.Algorithm, Callable[[], TestGenerationStrategy]] = {
+        config.Algorithm.CODAMOSA: CodaMOSATestStrategy,
         config.Algorithm.DYNAMOSA: DynaMOSATestStrategy,
         config.Algorithm.MIO: MIOTestStrategy,
         config.Algorithm.MOSA: MOSATestStrategy,
@@ -174,6 +176,7 @@ class TestSuiteGenerationAlgorithmFactory(
                 test_case_chromosome_factory, strategy.archive
             )
         if config.configuration.algorithm in (
+            config.Algorithm.CODAMOSA,
             config.Algorithm.DYNAMOSA,
             config.Algorithm.MIO,
             config.Algorithm.MOSA,
@@ -314,6 +317,7 @@ class TestSuiteGenerationAlgorithmFactory(
             A list of fitness functions
         """
         if config.configuration.algorithm in (
+            config.Algorithm.CODAMOSA,
             config.Algorithm.DYNAMOSA,
             config.Algorithm.MIO,
             config.Algorithm.MOSA,

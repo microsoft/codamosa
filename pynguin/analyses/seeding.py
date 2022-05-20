@@ -496,17 +496,27 @@ class _LargeLanguageModelSeeding:
 
         for gao in self._prompt_gaos.keys():
             if isinstance(gao, GenericCallableAccessibleObject):
-                source_lines, start_line = inspect.getsourcelines(gao.callable)
-                covered, total = coverage_in_range(
-                    start_line, start_line + len(source_lines) - 1
-                )
                 ordered_gaos.append(gao)
-                ordered_selection_probabilities.append(1 - (covered / total))
+                try:
+                    source_lines, start_line = inspect.getsourcelines(gao.callable)
+                    covered, total = coverage_in_range(
+                        start_line, start_line + len(source_lines) - 1
+                    )
+                    ordered_selection_probabilities.append(1 - (covered / total))
+                except (TypeError, OSError):
+                    ordered_selection_probabilities.append(0)
 
         denominator = sum(ordered_selection_probabilities)
-        ordered_selection_probabilities = [
-            p / denominator for p in ordered_selection_probabilities
-        ]
+        if denominator == 0:
+            # All the top-level callable functions are fully covered. I guess
+            # just do some random sampling?
+            ordered_selection_probabilities = [
+                1 / len(ordered_selection_probabilities)
+            ] * len(ordered_selection_probabilities)
+        else:
+            ordered_selection_probabilities = [
+                p / denominator for p in ordered_selection_probabilities
+            ]
 
         targeted_test_cases = []
         for gao in randomness.choices(
