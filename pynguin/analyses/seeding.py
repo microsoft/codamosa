@@ -14,7 +14,18 @@ import os
 from abc import abstractmethod
 from pathlib import Path
 from pkgutil import iter_modules
-from typing import TYPE_CHECKING, Any, AnyStr, Dict, List, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AnyStr,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 from _py_abc import ABCMeta
 from ordered_set import OrderedSet
@@ -462,15 +473,20 @@ class _LargeLanguageModelSeeding:
         }
 
     def target_uncovered_functions(
-        self, test_suite: tsc.TestSuiteChromosome, num_samples: int
+        self,
+        test_suite: tsc.TestSuiteChromosome,
+        num_samples: int,
+        resources_left: Callable[[], bool],
     ) -> List[tc.TestCase]:
 
-        # pylint: disable=R0914
+        # pylint: disable=R0914,R0912
         """Generate test cases for functions that are less covered by `test_suite`
 
         Args:
             test_suite: current best test suite
             num_samples: number of test cases to sample
+            resources_left: a callable that returns true if there are resources left
+                in the search algorithm
 
         Returns:
             a list of Codex-generated test cases.
@@ -551,6 +567,8 @@ class _LargeLanguageModelSeeding:
         for gao in randomness.choices(
             ordered_gaos, weights=ordered_selection_probabilities, k=num_samples
         ):
+            if not resources_left():
+                break
             if (
                 config.configuration.codamosa.test_case_context
                 == config.TestCaseContext.SMALLEST

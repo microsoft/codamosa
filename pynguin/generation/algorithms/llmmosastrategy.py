@@ -91,7 +91,9 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             test_suite: the test suite to base coverage off of.
         """
         test_cases = languagemodelseeding.target_uncovered_functions(
-            test_suite, config.configuration.codamosa.num_seeds_to_inject
+            test_suite,
+            config.configuration.codamosa.num_seeds_to_inject,
+            self.resources_left,
         )
         test_case_chromosomes = [
             tcc.TestCaseChromosome(test_case, self.test_factory)
@@ -100,6 +102,7 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
         while (
             len(test_case_chromosomes)
             < config.configuration.search_algorithm.population
+            and self.resources_left()
         ):
             offspring_1 = randomness.choice(test_case_chromosomes).clone()
 
