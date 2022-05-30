@@ -20,7 +20,7 @@ import pynguin.testcase.testcase as tc
 import pynguin.utils.statistics.statistics as stat
 from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.languagemodels.functionplaceholderadder import add_placeholder
-from pynguin.languagemodels.outputfixers import rewrite_tests
+from pynguin.languagemodels.outputfixers import fixup_result, rewrite_tests
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericCallableAccessibleObject,
     GenericConstructor,
@@ -412,6 +412,8 @@ class _OpenAILanguageModel:
         completion = self._call_completion(
             context + function_header, start_line, end_line
         )
+        # Remove any trailing statements that don't parse
+        generated_test = fixup_result(function_header + completion)
         if self.log_path != "":
             with open(
                 os.path.join(self.log_path, "codex_generations.py"),
@@ -419,10 +421,10 @@ class _OpenAILanguageModel:
                 encoding="UTF-8",
             ) as log_file:
                 log_file.write(f"\n\n# Generated at {datetime.now()}\n")
-                log_file.write(function_header + completion)
+                log_file.write(generated_test)
         else:
             assert False
-        generated_tests: Dict[str, str] = rewrite_tests(function_header + completion)
+        generated_tests: Dict[str, str] = rewrite_tests(generated_test)
         for test_name in generated_tests:
             if test_name in function_header:
                 return generated_tests[test_name]
