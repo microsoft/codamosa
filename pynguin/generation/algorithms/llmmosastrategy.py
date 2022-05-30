@@ -8,22 +8,32 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Set
 
 from ordered_set import OrderedSet
 
 import pynguin.configuration as config
 import pynguin.ga.computations as ff
 import pynguin.ga.testcasechromosome as tcc
+import pynguin.testcase.testcase as tc
 import pynguin.utils.statistics.statistics as stat
 from pynguin.analyses.seeding import languagemodelseeding
 from pynguin.ga.operators.ranking.crowdingdistance import (
     fast_epsilon_dominance_assignment,
 )
 from pynguin.generation.algorithms.abstractmosastrategy import AbstractMOSATestStrategy
+from pynguin.generation.export.pytestexporter import PyTestExporter
+from pynguin.testcase.statement import (
+    ConstructorStatement,
+    FunctionStatement,
+    MethodStatement,
+)
 from pynguin.utils import randomness
 from pynguin.utils.exceptions import ConstructionFailedException
 from pynguin.utils.statistics.runtimevariable import RuntimeVariable
+
+logger = logging.getLogger(__name__)
+
 
 if TYPE_CHECKING:
     import pynguin.ga.testsuitechromosome as tsc
@@ -34,6 +44,49 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
     """MOSA + Regular seeding by large language model."""
 
     _logger = logging.getLogger(__name__)
+
+    def __init__(self):
+        super().__init__()
+        self._num_codamosa_tests_added = 0
+        self._num_added_tests_needed_expansion = 0
+
+    def _register_added_testcase(self, test_case: tc.TestCase) -> None:
+        """Register that test_case was a test case generated during the targeted
+        LLM generation phase, and any additional statistics we're tracking.
+
+        Args:
+            test_case: the test case to register
+        """
+        self._num_codamosa_tests_added += 1
+        exporter = PyTestExporter(wrap_code=False)
+        logger.info(
+            "New population test case:\n %s",
+            exporter.export_sequences_to_str([test_case]),
+        )
+        if (
+            RuntimeVariable.LLMNeededExpansion
+            in config.configuration.statistics_output.output_variables
+        ):
+
+            for stmt in test_case.statements:
+                if isinstance(
+                    stmt, (ConstructorStatement, FunctionStatement, MethodStatement)
+                ):
+                    # If this variable is tracked, must be using an expandable cluster.
+                    was_backup = self.test_cluster.was_added_in_backup(  # type: ignore
+                        stmt.accessible_object()
+                    )
+                    if was_backup:
+                        self._num_added_tests_needed_expansion += 1
+                        logger.info("Required test cluster expansion to parse.")
+                        break
+            stat.track_output_variable(
+                RuntimeVariable.LLMNeededExpansion,
+                self._num_added_tests_needed_expansion,
+            )
+        stat.track_output_variable(
+            RuntimeVariable.LLMStageSavedTests, self._num_codamosa_tests_added
+        )
 
     def generate_tests(self) -> tsc.TestSuiteChromosome:
         self.before_search_start()
@@ -90,6 +143,19 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
         Args:
             test_suite: the test suite to base coverage off of.
         """
+        # If we are keeping track of what saved test cases get added in the
+        # output variables, do some extra analysis.
+        track_characteristics_of_solutions = (
+            RuntimeVariable.LLMNeededExpansion
+            in config.configuration.statistics_output.output_variables
+            or RuntimeVariable.LLMStageSavedTests
+            in config.configuration.statistics_output.output_variables
+        )
+        if track_characteristics_of_solutions:
+            original_population: Set[tc.TestCase] = {
+                chrom.test_case for chrom in self._population
+            }
+
         test_cases = languagemodelseeding.target_uncovered_functions(
             test_suite,
             config.configuration.codamosa.num_seeds_to_inject,
@@ -126,6 +192,11 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
                 test_case_chromosomes.append(offspring_2)
 
         self.evolve_common(test_case_chromosomes)
+        if track_characteristics_of_solutions:
+            for chrom in self._population:
+                test_case = chrom.test_case
+                if test_case not in original_population:
+                    self._register_added_testcase(test_case)
 
     def evolve(self) -> None:
         """Runs one evolution step."""

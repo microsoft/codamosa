@@ -145,5 +145,12 @@ class RuntimeVariable(str, enum.Enum):
     # Time spent querying the LLM API
     LLMQueryTime = "LLMQueryTime"
 
+    # Number of tests generated in the LLM stage that were saved
+    LLMStageSavedTests = "LLMStageSavedTests"
+
+    # Number of saved LLM-generated tests that required cluster
+    # expansion
+    LLMNeededExpansion = "LLMNeededExpansion"
+
     def __repr__(self):
         return f"{self.name}"

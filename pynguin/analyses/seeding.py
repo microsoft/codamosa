@@ -425,7 +425,7 @@ class _LargeLanguageModelSeeding:
             A new generated test case, or None if a test case could not be parsed
         """
         str_test_case = self._model.target_test_case(prompt_gao, context=context)
-        logger.info("Codex-generated testcase:\n%s", str_test_case)
+        logger.debug("Codex-generated testcase:\n%s", str_test_case)
         (
             testcases,
             parsed_statements,
@@ -434,7 +434,7 @@ class _LargeLanguageModelSeeding:
         if len(testcases) > 0:
             testcase = testcases[0]
             exporter = PyTestExporter(wrap_code=False)
-            logger.info(
+            logger.debug(
                 "Imported test case (%i/%i statements parsed):\n %s",
                 parsed_statements,
                 parsable_statements,
