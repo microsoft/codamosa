@@ -286,6 +286,7 @@ class ExpandableTestCluster(FullTestCluster):
         self._backup_accessible_objects: OrderedSet[
             GenericAccessibleObject
         ] = OrderedSet()
+        self._all_backups: OrderedSet[GenericAccessibleObject] = OrderedSet()
         self._backup_mode = False
         self._backup_dependency_map: Dict[GenericAccessibleObject, List[type]] = {}
         self._name_idx: Dict[str, List[GenericAccessibleObject]] = {}
@@ -429,6 +430,7 @@ class ExpandableTestCluster(FullTestCluster):
             super().add_generator(generator)
         else:
             self._backup_accessible_objects.add(generator)
+            self._all_backups.add(generator)
 
     def add_accessible_object_under_test(self, obj: GenericAccessibleObject) -> None:
         """Add accessible object to the objects under test, and keep track of its name.
@@ -441,6 +443,7 @@ class ExpandableTestCluster(FullTestCluster):
             super().add_accessible_object_under_test(obj)
         else:
             self._backup_accessible_objects.add(obj)
+            self._all_backups.add(obj)
 
     def add_modifier(self, type_: type, obj: GenericAccessibleObject) -> None:
         """Add a modifier.
@@ -457,6 +460,19 @@ class ExpandableTestCluster(FullTestCluster):
             super().add_modifier(type_, obj)
         else:
             self._backup_accessible_objects.add(obj)
+            self._all_backups.add(obj)
+
+    def was_added_in_backup(self, obj: GenericAccessibleObject):
+        """Returns true if the object `obj` was added as a backup. For statistics
+        tracking purposes.
+
+        Args:
+            obj: the object to check
+
+        Returns:
+            True if obj was added in backup mode
+        """
+        return obj in self._all_backups
 
     def try_resolve_call(self, call_name: str) -> Optional[GenericAccessibleObject]:
         """Tries to resolve the function in call_name to an accessible object.
@@ -472,7 +488,7 @@ class ExpandableTestCluster(FullTestCluster):
 
         """
         if call_name in self._name_idx:
-            # TODO(!!!): be smarter than just taking the first one?
+            # TODO(clemieux): be smarter than just taking the first one?
             gao_to_return = self._name_idx[call_name][0]
             self.promote_object(gao_to_return)
             return gao_to_return

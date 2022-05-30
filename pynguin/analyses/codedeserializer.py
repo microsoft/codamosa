@@ -333,8 +333,11 @@ class _StatementDeserializer:
         Returns:
             The corresponding statement.
         """
+        # TODO(clemieux): refactor so we don't have this special case...
         # This part is still necessary to handle any lone function calls. Otherwise
         # They will be caught in the try/except block below.
+        # This may also be necessary for promoted functions that don't make it into
+        # generator/modifier.
         if config.configuration.seeding.allow_expandable_cluster:
             logger.debug("Trying to find in expandable cluster")
             gen_callable = self._test_cluster.try_resolve_call(  # type: ignore
@@ -406,24 +409,6 @@ class _StatementDeserializer:
             elif isinstance(obj, GenericFunction):
                 if call_name == obj.function_name:
                     return obj
-        # # Last ditch effort to retrieve methods if we have an expandable clutser
-        # # TODO: given that we're now looking through all objects for the
-        # # expandable cluster... is any of this even necessary?
-        # if config.configuration.seeding.allow_expandable_cluster:
-        #     if call_id in self._ref_dict:
-        #         var_type = self._ref_dict[call_id].type
-        #         if self._ref_dict[call_id].type is None:
-        #             logger.error("The entry for %s is None", call_id)
-        #             return None
-        #         method = self._test_cluster.try_resolve_method_call(  # type: ignore
-        #             var_type, call_name
-        #         )
-        #         if method is not None:
-        #             logger.info(
-        #                 "method call resulution was useful for call_id: %s", call_id
-        #             )
-        #             return method
-
         return None
 
     def assemble_stmt_from_gen_callable(
