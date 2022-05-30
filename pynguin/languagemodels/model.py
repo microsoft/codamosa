@@ -10,12 +10,14 @@ import json
 import logging
 import os
 import string
+import time
 from datetime import datetime
 from typing import Dict, List
 
 import requests
 
 import pynguin.testcase.testcase as tc
+import pynguin.utils.statistics.statistics as stat
 from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.languagemodels.functionplaceholderadder import add_placeholder
 from pynguin.languagemodels.outputfixers import rewrite_tests
@@ -25,6 +27,7 @@ from pynguin.utils.generic.genericaccessibleobject import (
     GenericFunction,
     GenericMethod,
 )
+from pynguin.utils.statistics.runtimevariable import RuntimeVariable
 
 logger = logging.getLogger(__name__)
 
@@ -84,11 +87,12 @@ class _OpenAILanguageModel:
         self._edit_model: str
         self._log_path: str = ""
         # TODO(clemieux): make configurable; adding a fudge factor
-        self._max_query_len = 4096 - 200
+        self._max_query_len = 4000 - 200
         # TODO(clemieux): make configurable
         self._temperature: float
         self._token_len_cache = {}
-        self.num_codex_calls = 0
+        self.num_codex_calls: int = 0
+        self.time_calling_codex: float = 0
 
     @property
     def temperature(self) -> float:
@@ -243,8 +247,14 @@ class _OpenAILanguageModel:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self._authorization_key}",
         }
+        time_start = time.time()
         res = requests.post(url, data=json.dumps(payload), headers=headers)
+        self.time_calling_codex += time.time() - time_start
         self.num_codex_calls += 1
+        stat.track_output_variable(RuntimeVariable.LLMCalls, self.num_codex_calls)
+        stat.track_output_variable(
+            RuntimeVariable.LLMQueryTime, self.time_calling_codex
+        )
         if res.status_code != 200:
             logger.error("Failed to call for edit:\n%s", res.json())
             return ""
@@ -279,10 +289,17 @@ class _OpenAILanguageModel:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self._authorization_key}",
         }
+        time_start = time.time()
         res = requests.post(url, data=json.dumps(payload), headers=headers)
+        self.time_calling_codex += time.time() - time_start
         self.num_codex_calls += 1
+        stat.track_output_variable(RuntimeVariable.LLMCalls, self.num_codex_calls)
+        stat.track_output_variable(
+            RuntimeVariable.LLMQueryTime, self.time_calling_codex
+        )
         if res.status_code != 200:
             logger.error("Failed to call for completion:\n%s", res.json())
+            logger.error(self.complete_model)
             return ""
         return res.json()["choices"][0]["text"]
 

@@ -139,5 +139,11 @@ class RuntimeVariable(str, enum.Enum):
     # Parsed Statements in seeded initial test cases
     ParsedStatements = "ParsedStatements"
 
+    # Number of Calls to LLM
+    LLMCalls = "LLMCalls"
+
+    # Time spent querying the LLM API
+    LLMQueryTime = "LLMQueryTime"
+
     def __repr__(self):
         return f"{self.name}"
