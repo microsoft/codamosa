@@ -340,6 +340,8 @@ class _LargeLanguageModelSeeding:
         self._prompt_gaos: Optional[Dict[GenericCallableAccessibleObject, int]] = None
         self._sample_with_replacement: bool = True
         self._max_samples_per_prompt: int = 1
+        self._parsed_statements = 0
+        self._parsable_statements = 0
 
     @property
     def model(self) -> _OpenAILanguageModel:
@@ -426,6 +428,15 @@ class _LargeLanguageModelSeeding:
                 parsed_statements,
                 parsable_statements,
                 exporter.export_sequences_to_str([testcase]),
+            )
+
+            self._parsable_statements += parsable_statements
+            self._parsed_statements += parsed_statements
+            stat.track_output_variable(
+                RuntimeVariable.ParsableStatements, self._parsable_statements
+            )
+            stat.track_output_variable(
+                RuntimeVariable.ParsedStatements, self._parsed_statements
             )
             return testcase
         return None
