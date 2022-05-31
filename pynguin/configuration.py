@@ -343,6 +343,9 @@ class SeedingConfiguration:
     seed_from_archive_mutations: int = 3
     """Number of mutations applied when sampling from the archive."""
 
+    uninterpreted_statements: bool = False
+    """Whether to allow uninterpreted assignment statements in the parsed test cases"""
+
 
 @dataclasses.dataclass
 class CodaMosaConfiguration:

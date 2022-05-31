@@ -79,3 +79,37 @@ def test_case_0():
     assert (
         content == testcase_seed
     ), f"=======\n{content}\n=== differs from ===\n{testcase_seed}"
+
+
+def test_list_literal_wrong_semantics():
+    """This regression test reflects the fact that `try_generating_specific_function`
+    (in _StatementDeserializer) changes the semantics of list(), set(), etc. functions,
+    by putting in the iterable as a literal argument rather than iterating through
+    the iterable. There is no way simple way to fix this without supporting a new type
+    of statement or doing some complicated reachability analysis.
+    """
+
+    # here, int_3 has len 2
+    testcase_seed = """def test_case_0():
+    int_0 = 0
+    int_1 = 1
+    int_2 = (int_0, int_1)
+    int_3 = list(int_2)"""
+
+    # here, int_3 has len 1
+    wrong_semantics_seed = """def test_case_0():
+    int_0 = 0
+    int_1 = 1
+    int_2 = (int_0, int_1)
+    int_3 = [int_2]"""
+
+    test_cluster = TestClusterGenerator(
+        "tests.fixtures.grammar.parameters"
+    ).generate_cluster()
+
+    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster)
+    content = ExportProvider.get_exporter().export_sequences_to_str(testcases)
+    assert (
+        content == wrong_semantics_seed
+    ), f"=======\n{content}\n=== differs from ===\n{wrong_semantics_seed}"
+
