@@ -347,6 +347,10 @@ class StatementToAstVisitor(StatementVisitor):
             )
         )
 
+    def visit_ast_assign(self, stmt) -> None:
+        #TODO(42clemieux): implement
+        pass
+
     def _create_constant(self, stmt: PrimitiveStatement) -> ast.stmt:
         """All primitive values are constants.
 

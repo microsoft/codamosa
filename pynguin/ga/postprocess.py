@@ -120,7 +120,7 @@ class UnusedPrimitiveOrCollectionStatementVisitor(StatementVisitor):
         self._handle_remaining(stmt)
 
     def visit_assignment_statement(self, stmt) -> None:
-        raise NotImplementedError("No field support yet.")
+        raise NotImplementedError("No assign support yet.")
 
     def visit_list_statement(self, stmt) -> None:
         self._handle_collection_or_primitive(stmt)
@@ -133,3 +133,7 @@ class UnusedPrimitiveOrCollectionStatementVisitor(StatementVisitor):
 
     def visit_dict_statement(self, stmt) -> None:
         self._handle_collection_or_primitive(stmt)
+
+    def visit_ast_assign(self, stmt) -> None:
+        # TODO(42clemieux): implement
+        pass
