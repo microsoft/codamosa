@@ -6,6 +6,7 @@
 #
 
 import ast
+import copy
 from typing import Any, Callable, Dict, List, Set
 
 import pynguin.testcase.variablereference as vr
@@ -26,9 +27,22 @@ class VariableReferenceVisitor:
                 during visiting.
         """
         self._copy = copy
-        self._operator = operation
+        self._vr_operator = operation
 
     def visit(self, node):
+        """Delegate to the appropriate visitor method, or generic_visit
+
+        Args:
+            node: the ast.AST node to visit
+
+        Returns:
+            a copy of the node, with `self._operator` applied to all VariableReferences
+        """
+        method = "visit_" + node.__class__.__name__
+        visitor = getattr(self, method, self.generic_visit)
+        return visitor(node)
+
+    def generic_visit(self, node):
         """Visits everything, copying the node `node`, except that `self._operator`
         is applied to any children that are VariableReferences.
 
@@ -46,14 +60,16 @@ class VariableReferenceVisitor:
                 for value in old_value:
                     if isinstance(value, ast.AST):
                         value = self.visit(value)
-                        if value is None:
-                            continue
-                        elif not isinstance(value, ast.AST):
-                            new_values.extend(value)
-                            continue
                     elif isinstance(value, vr.VariableReference):
-                        value = self._operator(value)
-                    new_values.append(value)
+                        value = self._vr_operator(value)
+                    # In a list, can return a list...
+                    if value is None:
+                        continue
+                    elif isinstance(value, list):
+                        new_values.extend(value)
+                        continue
+                    else:
+                        new_values.append(value)
                 fields_to_assign[field] = new_values
             elif isinstance(old_value, ast.AST):
                 new_node = self.visit(old_value)
@@ -62,7 +78,7 @@ class VariableReferenceVisitor:
                 else:
                     fields_to_assign[field] = new_node
             elif isinstance(old_value, vr.VariableReference):
-                new_node = self._operator(old_value)
+                new_node = self._vr_operator(old_value)
                 if new_node is None:
                     pass
                 else:
@@ -75,24 +91,31 @@ class VariableReferenceVisitor:
             return None
 
 
-class FreeVariableOperator(ast.NodeTransformer):
+class FreeVariableOperator(VariableReferenceVisitor):
+    """A class which visits an ast and returns a copied ast, with  an operation
+    applied to all the free variables
+    """
+
     def __init__(self, operation: Callable[[ast.Name], Any]):
+        super().__init__(True, lambda x: x)
         self._bound_variables: Set[str] = set()
-        self._operator = operation
+        self._name_operator = operation
 
     def visit_Name(self, node: ast.Name) -> Any:
         if node.id not in self._bound_variables:
-            return self._operator(node)
+            return self._name_operator(node)
         else:
-            return node
+            return copy.deepcopy(node)
 
     def visit_Call(self, node: ast.Call) -> ast.Call:
         new_args = [self.visit(arg) for arg in node.args]
         new_kwargs = [
-            ast.keyword(arg=kwarg.arg, value=self.visit(kwarg.value))
+            ast.keyword(arg=copy.deepcopy(kwarg.arg), value=self.visit(kwarg.value))
             for kwarg in node.keywords
         ]
-        return ast.Call(func=node.func, args=new_args, keywords=new_kwargs)
+        return ast.Call(
+            func=copy.deepcopy(node.func), args=new_args, keywords=new_kwargs
+        )
 
     def visit_Lambda(self, node: ast.Lambda) -> ast.Lambda:
         bound_variables_before = set(self._bound_variables)
@@ -106,7 +129,7 @@ class FreeVariableOperator(ast.NodeTransformer):
             self._bound_variables.add(all_args.vararg.arg)
         new_body = self.visit(node.body)
         self._bound_variables = bound_variables_before
-        return ast.Lambda(args=node.args, body=new_body)
+        return ast.Lambda(args=copy.deepcopy(node.args), body=new_body)
 
     def get_comprehension_bound_vars(self, node: ast.comprehension) -> List[str]:
         return [elem.id for elem in ast.walk(node.target) if isinstance(elem, ast.Name)]
@@ -117,7 +140,7 @@ class FreeVariableOperator(ast.NodeTransformer):
             self._bound_variables.update(self.get_comprehension_bound_vars(comp))
             new_generators.append(
                 ast.comprehension(
-                    target=comp.target,
+                    target=copy.deepcopy(comp.target),
                     iter=self.visit(comp.iter),
                     ifs=[self.visit(iff) for iff in comp.ifs],
                     is_async=comp.is_async,
@@ -194,8 +217,7 @@ def operate_on_free_variables(
     Returns:
         a, possibly strange, ast.AST
     """
-    transformed_node = VariableReferenceVisitor(True, lambda x: x).visit(node)
-    transformed_node = FreeVariableOperator(operation).visit(transformed_node)
+    transformed_node = FreeVariableOperator(operation).visit(node)
     return transformed_node
 
 
@@ -232,13 +254,6 @@ class VariableRefAST:
 
     def __init__(self, node: ast.AST, ref_dict: Dict[str, vr.VariableReference]):
         self._node = _replace_with_var_refs(node, ref_dict)
-
-    def dump(self) -> str:
-        """Dumps self._node to a string
-
-        Returns:
-            the dumped representation of the inner node"""
-        return self._node.dump()
 
     def structural_hash(self):
         """Structural hash for self, using structural_hash() for variable references
@@ -394,42 +409,31 @@ class VariableRefAST:
             true if self._node was successfully mutated.
         """
         num_var_refs = self.count_var_refs()
+
+        # Can't mutate if there are no variable references or
+        # if there is only one declared variable.
         if num_var_refs == 0:
+            return False
+        if len(var_refs) == 1:
             return False
 
         at_least_one_mutated = False
+        mutate_position = randomness.choice(list(range(num_var_refs)))
+        vr_idx = 0
 
-        # We're going to try to mutate the variable references in this order.
-        mutation_order = list(range(num_var_refs))
-        randomness.shuffle(mutation_order)
-
-        for num_to_mutate in mutation_order:
-            # If we've managed to mutate one, break out of the loop
-            if at_least_one_mutated:
-                break
+        def mutate_ref(v: vr.VariableReference):
+            nonlocal vr_idx, mutate_position, at_least_one_mutated
+            if vr_idx == mutate_position:
+                vr_idx += 1
+                candidate_refs = list(var_refs.difference({v}))
+                replacer = randomness.choice(candidate_refs)
+                at_least_one_mutated = True
+                return replacer
             else:
-                vr_idx = 0
-                # This visitor tries to mutate the `num_to_mutate`th VariableReference
-                # visited.
+                vr_idx += 1
+                return v
 
-                def mutate_ref(v: vr.VariableReference):
-                    nonlocal vr_idx, num_to_mutate, at_least_one_mutated
-                    if vr_idx == num_to_mutate:
-                        vr_idx += 1
-                        candidate_refs = list(var_refs.difference({v}))
-                        if len(candidate_refs) == 0:
-                            return v
-                        else:
-                            replacer = randomness.choice(candidate_refs)
-                            at_least_one_mutated = True
-                            return replacer
-                    else:
-                        vr_idx += 1
-                        return v
-
-                self._node = copy_and_operate_on_variable_references(
-                    self._node, mutate_ref
-                )
+        self._node = copy_and_operate_on_variable_references(self._node, mutate_ref)
 
         return at_least_one_mutated
 
