@@ -208,12 +208,12 @@ class VariableRefAST:
             the dumped representation of the inner node"""
         return self._node.dump()
 
-    def structural_equal(self, second: 'VariableRefAST', memo: dict[vr.VariableReference, vr.VariableReference]) -> bool:
+    def structural_equal(self, second: 'VariableRefAST', memo: Dict[vr.VariableReference, vr.VariableReference]) -> bool:
         """Compares whether the two AST nodes are equal w.r.t. memo..."""
         # TODO: implement...
         return False
 
-    def clone(self, memo: dict[vr.VariableReference, vr.VariableReference]) -> 'VariableRefAST':
+    def clone(self, memo: Dict[vr.VariableReference, vr.VariableReference]) -> 'VariableRefAST':
         """Clone the node as an ast, doing any replacement given in memo.
 
         Args:
@@ -264,7 +264,7 @@ class VariableRefAST:
 
         return var_refs
 
-    def mutate_var_ref(self, var_refs: list[vr.VariableReference]) -> bool:
+    def mutate_var_ref(self, var_refs: Set[vr.VariableReference]) -> bool:
         """Mutate one of the variable references in `self._node` so that it
         points to some other variable reference in var_refs.
 
@@ -296,7 +296,7 @@ class VariableRefAST:
                     nonlocal vr_idx, num_to_mutate, at_least_one_mutated
                     if vr_idx == num_to_mutate:
                         vr_idx += 1
-                        candidate_refs = var_refs.remove(v)
+                        candidate_refs = list(var_refs.difference({v}))
                         if len(candidate_refs) == 0:
                             return v
                         else:

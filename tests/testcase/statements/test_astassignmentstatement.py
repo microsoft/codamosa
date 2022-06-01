@@ -23,14 +23,14 @@ def test_mutate_ast_assign_tc():
     test_case_str="""def test_case_0():
     int_0 = 0
     int_1 = 1
-    var_0 = lambda x: x + int_1
-    """
+    var_0 = lambda x: x + int_1 """
 
+    # There is only one possible mutation here.
     mutated_test_case_str="""def test_case_0():
     int_0 = 0
     int_1 = 1
-    var_0 = lambda x: x + int_0
-    """
+    var_0 = lambda x: x + int_0"""
+
     # Dummy test cluster
     test_cluster = TestClusterGenerator(
         "tests.fixtures.grammar.parameters"

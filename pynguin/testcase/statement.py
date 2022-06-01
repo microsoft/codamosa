@@ -1893,7 +1893,7 @@ class ASTAssignStatement(
         return None
 
     def mutate(self) -> bool:
-        return self._rhs.mutate_var_ref(self._test_case.get_all_objects(self.get_position()))
+        return self._rhs.mutate_var_ref(set(self._test_case.get_all_objects(self.get_position())))
 
     def get_variable_references(self) -> set[vr.VariableReference]:
         return self._rhs.get_all_var_refs()
