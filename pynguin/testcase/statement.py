@@ -12,7 +12,7 @@ import ast
 import logging
 import math
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, get_args, Dict
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, get_args, Dict, Callable
 
 from ordered_set import OrderedSet
 
@@ -1911,3 +1911,15 @@ class ASTAssignStatement(
         if not isinstance(other, ASTAssignStatement):
             return False
         return self._ret_val.structural_eq(other._ret_val, memo) and self._rhs.structural_equal(other._rhs, memo)
+
+    def get_rhs_as_normal_ast(self, vr_replacer: Callable[[vr.VariableReference], ast.Name | ast.Attribute]) -> ast.AST:
+        """Gets a normal ast out of self._rhs.
+
+        Args:
+            vr_replacer: the function that replaces vr.VariableReferences with ast.ASTs
+
+        Returns:
+            an AST with all VariableReferences replaced by ast.Names or ast.Attributes,
+            as mandated by vr_replacer.
+        """
+        return self._rhs.get_normal_ast(vr_replacer)

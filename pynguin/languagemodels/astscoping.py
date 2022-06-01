@@ -38,6 +38,7 @@ class VariableReferenceVisitor:
         Returns:
             a copy of the node, with `self._operator` applied to all VariableReferences
         """
+
         fields_to_assign = {}
         for field, old_value in ast.iter_fields(node):
             if isinstance(old_value, list):
@@ -66,6 +67,8 @@ class VariableReferenceVisitor:
                     pass
                 else:
                     fields_to_assign[field] = new_node
+            elif copy:
+                fields_to_assign[field] = old_value
         if copy:
             return node.__class__(**fields_to_assign)
         else:
@@ -223,13 +226,14 @@ class VariableRefAST:
         cloned = operate_on_variable_references(self._node, True, replace_var_ref)
 
         # There should be no effect from re-visiting cloned, since all its free
-        # variables have been replaced by VariableReferences, and thus will not be visited.
+        # variables have been replaced by VariableReferences, and thus will not
+        # be visited.
         try:
             ret_val = VariableRefAST(cloned, {})
             return ret_val
         except ValueError:
-            # This should never happen because cloned is created by operating on self._node,
-            # which was convereted to a weird AST already.
+            # This should never happen because cloned is created by operating on
+            # self._node, which was convereted to a weird AST already.
             raise ValueError('clone was called on a VariableRefAST which was incorrectly converted')
 
     def count_var_refs(self) -> int:
@@ -239,6 +243,7 @@ class VariableRefAST:
             the number of variable references in self._node, including dupes
         """
         num_refs = 0
+
         def count_var_refs(v: vr.VariableReference):
             nonlocal num_refs
             num_refs += 1
@@ -309,6 +314,22 @@ class VariableRefAST:
         """Replace occurrences of old_var with the new_var.
         """
         return self.clone({old_var: new_var})
+
+    def get_normal_ast(self, vr_replacer: Callable[[vr.VariableReference], ast.Name | ast.Attribute]) -> ast.AST:
+        """Gets a normal ast out of the stored AST in self._node, which has variable
+        references in places of names.
+
+        Args:
+            vr_replacer: the function that replaces vr.VariableReferences with ast.ASTs
+
+        Returns:
+            an AST with all VariableReferences replaced by ast.Names or ast.Attributes,
+            as mandated by vr_replacer.
+        """
+        dump_before = ast.dump(self._node)
+        ret_val =  operate_on_variable_references(self._node, True, vr_replacer)
+        dump_after = ast.dump(ret_val)
+        return ret_val
 
 
 

@@ -135,5 +135,4 @@ class UnusedPrimitiveOrCollectionStatementVisitor(StatementVisitor):
         self._handle_collection_or_primitive(stmt)
 
     def visit_ast_assign(self, stmt) -> None:
-        # TODO(42clemieux): implement
-        pass
+        raise NotImplementedError("No AST Assign support yet.")

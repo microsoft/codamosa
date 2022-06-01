@@ -13,6 +13,7 @@ from pynguin import configuration as config
 from pynguin.assertion import assertion as ass
 from pynguin.testcase import statement as stmt
 from pynguin.testcase import variablereference as vr
+from pynguin.testcase.statement import ASTAssignStatement
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericCallableAccessibleObject,
     GenericConstructor,
@@ -112,6 +113,8 @@ class _StatementDeserializer:
             new_stmt = self.create_stmt_from_collection(value)
         elif isinstance(value, ast.Attribute):
             new_stmt = self.create_stmt_from_field_access(value)
+        elif config.configuration.seeding.uninterpreted_statements:
+            new_stmt = self.create_ast_assign_stmt(value)
         else:
             logger.info(
                 "Assign statement could not be parsed. (%s)", ast.unparse(assign)
@@ -121,6 +124,21 @@ class _StatementDeserializer:
             return None
         ref_id = str(assign.targets[0].id)
         return ref_id, new_stmt
+
+    def create_ast_assign_stmt(self, rhs: ast.expr) -> ASTAssignStatement | None:
+        """Creates an ASTAssignStatement from the given rhs
+
+        Args:
+            rhs: right-hand side as an AST
+
+        Returns:
+            the corresponding ASTAssignStatement.
+        """
+        try:
+            assign_stmt = ASTAssignStatement(self._testcase, rhs, self._ref_dict)
+            return assign_stmt
+        except ValueError:
+            return None
 
     def create_assert_stmt(
         self, assert_node: ast.Assert
