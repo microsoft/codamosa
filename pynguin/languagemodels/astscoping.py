@@ -6,7 +6,6 @@
 #
 
 import ast
-import copy
 from typing import Any, Set, List, Dict, Callable
 
 import pynguin.testcase.variablereference as vr
@@ -26,6 +25,7 @@ class VariableReferenceVisitor:
             operation: operation to apply to any VariableReference encountered
                 during visiting.
         """
+        self._copy = copy
         self._operator = operation
 
     def visit(self, node):
@@ -67,9 +67,9 @@ class VariableReferenceVisitor:
                     pass
                 else:
                     fields_to_assign[field] = new_node
-            elif copy:
+            elif self._copy:
                 fields_to_assign[field] = old_value
-        if copy:
+        if self._copy:
             return node.__class__(**fields_to_assign)
         else:
             return None
@@ -175,7 +175,7 @@ def operate_on_free_variables(node: ast.expr, operation: Callable[[ast.Name], An
     Returns:
         a, possibly strange, ast.expr
     """
-    transformed_node = copy.deepcopy(node)
+    transformed_node = VariableReferenceVisitor(True, lambda x: x).visit(node)
     transformed_node = FreeVariableOperator(operation).visit(transformed_node)
     return transformed_node
 
@@ -208,10 +208,80 @@ class VariableRefAST:
             the dumped representation of the inner node"""
         return self._node.dump()
 
-    def structural_equal(self, second: 'VariableRefAST', memo: Dict[vr.VariableReference, vr.VariableReference]) -> bool:
-        """Compares whether the two AST nodes are equal w.r.t. memo..."""
-        # TODO: implement...
-        return False
+    def structural_hash(self):
+        """Structural hash for self, using structural_hash() for variable references
+
+         Returns:
+             a hash of this object
+        """
+
+        def value_hash(current_hash, value: Any) -> int:
+            if isinstance(value, ast.AST):
+                current_hash += hash_ast_helper(current_hash, value)
+            elif isinstance(value, vr.VariableReference):
+                current_hash += 17 * value.structural_hash()
+            else:
+                current_hash += 17 * hash(value)
+            return current_hash
+
+        def hash_ast_helper(current_hash: int, node: ast.AST):
+            field_dict = dict(ast.iter_fields(node))
+            for field, value in field_dict.items():
+                current_hash += 17 * hash(field)
+                if isinstance(value, list):
+                    for elem in value:
+                        current_hash = value_hash(current_hash, elem)
+                else:
+                    current_hash = value_hash(current_hash, value)
+            return current_hash
+
+        return hash_ast_helper(31, self._node)
+
+
+    def structural_eq(self, other: 'VariableRefAST', memo: Dict[vr.VariableReference, vr.VariableReference]) -> bool:
+        """Compares whether the two AST nodes are equal w.r.t. memo...
+
+        Args:
+            second: the VarRefAST to compare to
+            memo: the varref mapping
+
+        Returns:
+            whether second is struturally equal to self w.r.t. memo
+        """
+        def value_equal_helper(first: Any, second: Any):
+            if type(first) != type(second):
+                return False
+            elif isinstance(first, ast.AST):
+                return equal_helper_ast(first, second)
+            elif isinstance(first, vr.VariableReference):
+                return first.structural_eq(second, memo)
+            else:
+                return first == second
+
+        def equal_helper_ast(first: ast.AST, second: ast.AST):
+            if type(first) != type(second):
+                return False
+            first_fields = dict(ast.iter_fields(first))
+            second_fields = dict(ast.iter_fields(second))
+            if set(first_fields.keys()) != set(second_fields.keys()):
+                return False
+            for field in first_fields.keys():
+                first_value = first_fields[field]
+                second_value = second_fields[field]
+                if isinstance(first_value, list) and isinstance(second_value, list):
+                    if len(first_value) != len(second_value):
+                        return False
+                    for i in range(len(first_value)):
+                        first_elem = first_value[i]
+                        second_elem = second_value[i]
+                        if not value_equal_helper(first_elem, second_elem):
+                            return False
+                else:
+                    if not value_equal_helper(first_value, second_value):
+                        return False
+            return True
+
+        return equal_helper_ast(self._node, other._node)
 
     def clone(self, memo: Dict[vr.VariableReference, vr.VariableReference]) -> 'VariableRefAST':
         """Clone the node as an ast, doing any replacement given in memo.

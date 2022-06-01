@@ -39,10 +39,13 @@ def test_mutate_ast_assign_tc():
     test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
     assert len(test_cases) == 1
     test_case = test_cases[0]
+    orig_test_case = test_case.clone()
     assert len(test_case.statements) == 3
     assert test_case.statements[-1].mutate()
     out_test_case = ExportProvider.get_exporter().export_sequences_to_str([test_case])
     assert out_test_case == mutated_test_case_str
+    assert test_case != orig_test_case
+
 
 
 
@@ -79,6 +82,6 @@ def test_clone_eq_ast_assign_tc(test_case_str):
     clone_test_case = test_case.clone()
     assert clone_test_case is not test_case
     assert clone_test_case.__hash__() == test_case.__hash__()
-    assert clone_test_case == test_case
+    assert test_case == clone_test_case
 
 

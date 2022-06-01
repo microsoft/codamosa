@@ -1902,15 +1902,14 @@ class ASTAssignStatement(
         self._rhs = self._rhs.replace_var_ref(old, new)
 
     def structural_hash(self) -> int:
-        # TODO: is this ok? to dump the RHS?
-        return 31 + 17 * self._ret_val.structural_hash() + 17 * hash(self._rhs.dump())
+        return 31 + 17 * self._ret_val.structural_hash() + 17 * hash(self._rhs.structural_hash())
 
     def structural_eq(
         self, other: Any, memo: dict[vr.VariableReference, vr.VariableReference]
     ) -> bool:
         if not isinstance(other, ASTAssignStatement):
             return False
-        return self._ret_val.structural_eq(other._ret_val, memo) and self._rhs.structural_equal(other._rhs, memo)
+        return self._ret_val.structural_eq(other._ret_val, memo) and self._rhs.structural_eq(other._rhs, memo)
 
     def get_rhs_as_normal_ast(self, vr_replacer: Callable[[vr.VariableReference], ast.Name | ast.Attribute]) -> ast.AST:
         """Gets a normal ast out of self._rhs.
