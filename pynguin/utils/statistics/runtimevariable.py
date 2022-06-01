@@ -152,5 +152,13 @@ class RuntimeVariable(str, enum.Enum):
     # expansion
     LLMNeededExpansion = "LLMNeededExpansion"
 
+    # Number of saved LLM-generated tests that required the use of uninterpreted
+    # AST statements
+    LLMNeededUninterpreted = "LLMNeededUninterpreted"
+
+    # Number of saved LLM-generated tests that required the use of uninterpreted
+    # AST statements, but only for (builtin) calls
+    LLMNeededUninterpretedCallsOnly = "LLMNeededUninterpretedCallsOnly"
+
     def __repr__(self):
         return f"{self.name}"

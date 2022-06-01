@@ -24,6 +24,7 @@ from pynguin.ga.operators.ranking.crowdingdistance import (
 from pynguin.generation.algorithms.abstractmosastrategy import AbstractMOSATestStrategy
 from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.testcase.statement import (
+    ASTAssignStatement,
     ConstructorStatement,
     FunctionStatement,
     MethodStatement,
@@ -49,6 +50,8 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
         super().__init__()
         self._num_codamosa_tests_added = 0
         self._num_added_tests_needed_expansion = 0
+        self._num_added_tests_needed_uninterp = 0
+        self._num_added_tests_needed_calls = 0
 
     def _register_added_testcase(self, test_case: tc.TestCase) -> None:
         """Register that test_case was a test case generated during the targeted
@@ -63,11 +66,17 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             "New population test case:\n %s",
             exporter.export_sequences_to_str([test_case]),
         )
-        if (
-            RuntimeVariable.LLMNeededExpansion
-            in config.configuration.statistics_output.output_variables
+        if any(
+            var in config.configuration.statistics_output.output_variables
+            for var in [
+                RuntimeVariable.LLMNeededExpansion,
+                RuntimeVariable.LLMNeededUninterpretedCallsOnly,
+                RuntimeVariable.LLMNeededUninterpreted,
+            ]
         ):
-
+            needed_expansion = False
+            needed_calls = False
+            needed_uninterp = False
             for stmt in test_case.statements:
                 if isinstance(
                     stmt, (ConstructorStatement, FunctionStatement, MethodStatement)
@@ -77,13 +86,37 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
                         stmt.accessible_object()
                     )
                     if was_backup:
-                        self._num_added_tests_needed_expansion += 1
+                        needed_expansion = True
                         logger.info("Required test cluster expansion to parse.")
-                        break
+                elif isinstance(stmt, ASTAssignStatement):
+                    if stmt.rhs_is_call():
+                        needed_calls = True
+                    else:
+                        needed_uninterp = True
+
+            self._num_added_tests_needed_expansion += 1 if needed_expansion else 0
+            self._num_added_tests_needed_uninterp += (
+                1 if (needed_calls or needed_uninterp) else 0
+            )
+            self._num_added_tests_needed_calls += (
+                1 if (needed_calls and not needed_uninterp) else 0
+            )
+
             stat.track_output_variable(
                 RuntimeVariable.LLMNeededExpansion,
                 self._num_added_tests_needed_expansion,
             )
+
+            stat.track_output_variable(
+                RuntimeVariable.LLMNeededUninterpreted,
+                self._num_added_tests_needed_uninterp,
+            )
+
+            stat.track_output_variable(
+                RuntimeVariable.LLMNeededUninterpretedCallsOnly,
+                self._num_added_tests_needed_calls,
+            )
+
         stat.track_output_variable(
             RuntimeVariable.LLMStageSavedTests, self._num_codamosa_tests_added
         )

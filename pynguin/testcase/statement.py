@@ -1934,3 +1934,11 @@ class ASTAssignStatement(VariableCreatingStatement, metaclass=ABCMeta):
             as mandated by vr_replacer.
         """
         return self._rhs.get_normal_ast(vr_replacer)
+
+    def rhs_is_call(self):
+        """Returns true if _rhs is just a call
+
+        Returns:
+            true if the uninterpreted statement is just a call
+        """
+        return self._rhs.is_call()

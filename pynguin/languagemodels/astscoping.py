@@ -466,3 +466,11 @@ class VariableRefAST:
         """
         ret_val = copy_and_operate_on_variable_references(self._node, vr_replacer)
         return ret_val
+
+    def is_call(self):
+        """Are we just storing a call?
+
+        Returns:
+            True if the underlying ast is a call
+        """
+        return isinstance(self._node, ast.Call)
