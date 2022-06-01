@@ -49,13 +49,14 @@ class Random(random.Random):
 RNG: Random = Random()
 RNG.seed()
 
+
 def shuffle(lst) -> None:
     """Shuffles lst in-place
 
     Args:
         lst: the list to shuffle
     """
-    RNG.shuffle(lst, RNG.random)
+    RNG.shuffle(lst)
 
 
 def next_char() -> str:

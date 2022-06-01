@@ -13,6 +13,7 @@ from pynguin import configuration as config
 
 logger = logging.getLogger()
 
+
 def is_expr_or_stmt(node: ast.AST):
     """
     Whether node is an expression or statement, i.e. whether it potentially has useful

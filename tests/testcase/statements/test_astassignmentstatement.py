@@ -6,12 +6,11 @@
 #
 
 
-from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
-import pynguin.testcase.testcase as tc
 import pytest
-import pynguin.configuration as config
-from pynguin.generation.export.exportprovider import ExportProvider
 
+import pynguin.configuration as config
+from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
+from pynguin.generation.export.exportprovider import ExportProvider
 from pynguin.setup.testclustergenerator import TestClusterGenerator
 
 
@@ -20,13 +19,13 @@ def test_mutate_ast_assign_tc():
     config.configuration.seeding.uninterpreted_statements = True
     config.configuration.seeding.include_partially_parsable = True
 
-    test_case_str="""def test_case_0():
+    test_case_str = """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = lambda x: x + int_1 """
 
     # There is only one possible mutation here.
-    mutated_test_case_str="""def test_case_0():
+    mutated_test_case_str = """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = lambda x: x + int_0"""
@@ -47,24 +46,26 @@ def test_mutate_ast_assign_tc():
     assert test_case != orig_test_case
 
 
-
-
-
 # End-to-end test of the ast assign statement's clone and eq. The first has no
 # uninterpreted assigns, actually
 @pytest.mark.parametrize(
-"test_case_str", [
-        ("""def test_case_0():
+    "test_case_str",
+    [
+        (
+            """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = module_0.positional_only(int_0, int_1)
-    """),
-        ("""def test_case_0():
+    """
+        ),
+        (
+            """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = lambda x: x + int_1
-    """)
-    ]
+    """
+        ),
+    ],
 )
 def test_clone_eq_ast_assign_tc(test_case_str):
     config.configuration.seeding.uninterpreted_statements = True
@@ -83,5 +84,3 @@ def test_clone_eq_ast_assign_tc(test_case_str):
     assert clone_test_case is not test_case
     assert clone_test_case.__hash__() == test_case.__hash__()
     assert test_case == clone_test_case
-
-

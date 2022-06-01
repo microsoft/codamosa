@@ -12,7 +12,7 @@ from inspect import Parameter
 from typing import TYPE_CHECKING, Any, cast
 
 import pynguin.utils.ast_util as au
-from pynguin.testcase.statement import StatementVisitor, ASTAssignStatement
+from pynguin.testcase.statement import ASTAssignStatement, StatementVisitor
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericCallableAccessibleObject,
 )
@@ -350,10 +350,16 @@ class StatementToAstVisitor(StatementVisitor):
     def visit_ast_assign(self, stmt: ASTAssignStatement) -> None:
         self._ast_nodes.append(
             ast.Assign(
-                targets = [
-                    au.create_full_name(self._variable_names, self._module_aliases, stmt.ret_val, False)
+                targets=[
+                    au.create_full_name(
+                        self._variable_names, self._module_aliases, stmt.ret_val, False
+                    )
                 ],
-                value = stmt.get_rhs_as_normal_ast(lambda x: au.create_full_name(self._variable_names, self._module_aliases, x, True))
+                value=stmt.get_rhs_as_normal_ast(
+                    lambda x: au.create_full_name(
+                        self._variable_names, self._module_aliases, x, True
+                    )
+                ),
             )
         )
 

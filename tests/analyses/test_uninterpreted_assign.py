@@ -6,14 +6,14 @@
 #
 import pytest
 
+import pynguin.configuration as config
 from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
 from pynguin.generation.export.exportprovider import ExportProvider
 from pynguin.setup.testclustergenerator import TestClusterGenerator
-import pynguin.configuration as config
+
 
 def test_list_literal_uninterpreted_assign():
-    """UninterpretedAssignment should allow
-    """
+    """UninterpretedAssignment should allow"""
 
     testcase_seed = """def test_case_0():
     int_0 = 0
@@ -62,8 +62,7 @@ def test_list_literal_uninterpreted_assign():
         """    int_0 = 0
     int_1 = 1
     var_0 = int_0 + int_1
-    var_1 = module_0.positional_only(var_0)"""
-
+    var_1 = module_0.positional_only(var_0)""",
     ],
 )
 def test_uninterpreted_assign_roundtrip(testcase_seed):
@@ -86,4 +85,3 @@ def test_case_0():
     assert (
         content == testcase_seed
     ), f"=======\n{content}\n=== differs from ===\n{testcase_seed}"
-

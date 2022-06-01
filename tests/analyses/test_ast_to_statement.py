@@ -112,4 +112,3 @@ def test_list_literal_wrong_semantics():
     assert (
         content == wrong_semantics_seed
     ), f"=======\n{content}\n=== differs from ===\n{wrong_semantics_seed}"
-
