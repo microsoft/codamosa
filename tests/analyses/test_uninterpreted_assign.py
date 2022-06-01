@@ -19,7 +19,7 @@ def test_list_literal_uninterpreted_assign():
     int_0 = 0
     int_1 = 1
     int_2 = (int_0, int_1)
-    int_3 = list(int_2)"""
+    var_0 = list(int_2)"""
 
     config.configuration.seeding.uninterpreted_statements = True
 

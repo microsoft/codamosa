@@ -635,6 +635,29 @@ class _StatementDeserializer:
             func_id = str(call.func.id)  # type: ignore
         except AttributeError:
             return None
+
+        # It appears that sometimes builtins is a dictionary and other times it is
+        # a module, depending on your python interpreter... curious.
+        builtins_dict = (
+            __builtins__ if isinstance(__builtins__, dict) else __builtins__.__dict__
+        )
+
+        if (
+            config.configuration.seeding.uninterpreted_statements
+            and func_id in builtins_dict
+        ):
+            return self.create_ast_assign_stmt(call)
+
+        # Note: the functionality below actually results in incorrect semantics,
+        # because the collection keywords are not equivalent to their concrete
+        # syntax; the keywords go through the iterable passed as argument as runtime.
+        # Example:
+        #     lst_0 = [0,1,2,3]
+        #     set_0 = set(lst_0)
+        #     set_1 = {lst_0}
+        # set_0 has 4 elements, the creation of set_1 will throw an exception because a
+        # list is not hashable.
+        # Maintaining the below for compatibility reasons.
         if func_id == "set":
             try:
                 set_node = ast.Set(
@@ -672,12 +695,6 @@ class _StatementDeserializer:
             except AttributeError:
                 return None
             return self.create_stmt_from_collection(dict_node)
-        # TODO(clemieux): add case for other generic callables from __builtins__
-        # if func_id in __builtins__.:
-        #     logger.debug(f"Trying to parse builtin function: {func_id}")
-        #     # TODO(clemieux): probably need to add a BuiltInStatement
-        #      in order to support this
-        #     return None
         return None
 
 
