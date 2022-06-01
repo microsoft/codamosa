@@ -347,7 +347,7 @@ class StatementToAstVisitor(StatementVisitor):
             )
         )
 
-    def visit_ast_assign(self, stmt: ASTAssignStatement) -> None:
+    def visit_ast_assign_statement(self, stmt: ASTAssignStatement) -> None:
         self._ast_nodes.append(
             ast.Assign(
                 targets=[

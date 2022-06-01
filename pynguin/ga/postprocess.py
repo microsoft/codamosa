@@ -134,5 +134,5 @@ class UnusedPrimitiveOrCollectionStatementVisitor(StatementVisitor):
     def visit_dict_statement(self, stmt) -> None:
         self._handle_collection_or_primitive(stmt)
 
-    def visit_ast_assign(self, stmt) -> None:
-        raise NotImplementedError("No AST Assign support yet.")
+    def visit_ast_assign_statement(self, stmt) -> None:
+        self._handle_remaining(stmt)

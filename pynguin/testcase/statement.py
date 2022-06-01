@@ -382,7 +382,7 @@ class StatementVisitor(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def visit_ast_assign(self, stmt) -> None:
+    def visit_ast_assign_statement(self, stmt) -> None:
         """Visit ast assign statement.
 
         Args:
@@ -1889,7 +1889,7 @@ class ASTAssignStatement(VariableCreatingStatement, metaclass=ABCMeta):
         return ASTAssignStatement(test_case, new_rhs, {})
 
     def accept(self, visitor: StatementVisitor) -> None:
-        visitor.visit_ast_assign(self)
+        visitor.visit_ast_assign_statement(self)
 
     def accessible_object(self) -> gao.GenericAccessibleObject | None:
         return None

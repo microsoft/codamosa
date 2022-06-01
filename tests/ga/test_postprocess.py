@@ -100,6 +100,7 @@ def test_remove_integration(constructor_mock):
         ("visit_constructor_statement", "_handle_remaining"),
         ("visit_method_statement", "_handle_remaining"),
         ("visit_function_statement", "_handle_remaining"),
+        ("visit_ast_assign_statement", "_handle_remaining"),
         ("visit_list_statement", "_handle_collection_or_primitive"),
         ("visit_set_statement", "_handle_collection_or_primitive"),
         ("visit_tuple_statement", "_handle_collection_or_primitive"),
