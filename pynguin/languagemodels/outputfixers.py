@@ -13,26 +13,6 @@ from pynguin import configuration as config
 
 logger = logging.getLogger()
 
-
-# Pulled From Python 3.10
-def iter_fields(node):
-    """
-    Yield a tuple of ``(fieldname, value)`` for each field in ``node._fields``
-    that is present on *node*.
-
-    Args:
-        node: an ast node
-
-    Yields:
-        a tuple of ``(fieldname, value)`` for each field in ``node._fields``
-    """
-    for field in node._fields:
-        try:
-            yield field, getattr(node, field)
-        except AttributeError:
-            pass
-
-
 def is_expr_or_stmt(node: ast.AST):
     """
     Whether node is an expression or statement, i.e. whether it potentially has useful
@@ -192,7 +172,7 @@ class StmtRewriter(ast.NodeTransformer):
             the transformed node
         """
         field_assign = {}
-        for field, value in iter_fields(node):
+        for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 new_value_lst = []
                 for item in value:
@@ -222,7 +202,7 @@ class StmtRewriter(ast.NodeTransformer):
             the transformed node
         """
         field_assign = {}
-        for field, value in iter_fields(node):
+        for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 new_value_lst = []
                 for item in value:
