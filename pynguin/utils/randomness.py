@@ -49,6 +49,14 @@ class Random(random.Random):
 RNG: Random = Random()
 RNG.seed()
 
+def shuffle(lst) -> None:
+    """Shuffles lst in-place
+
+    Args:
+        lst: the list to shuffle
+    """
+    RNG.shuffle(lst, RNG.random)
+
 
 def next_char() -> str:
     """Create a random printable ascii char.

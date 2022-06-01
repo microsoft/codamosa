@@ -1873,15 +1873,17 @@ class ASTAssignStatement(
         )
         if isinstance(rhs, astscoping.VariableRefAST):
             self._rhs = rhs
-        else:
+        elif isinstance(rhs, ast.AST):
             self._rhs = astscoping.VariableRefAST(rhs, ref_dict)
+        else:
+            raise ValueError(f"Tried to create an ASTAssignStatement with a RHS of type {type(rhs)}")
 
     def clone(
         self,
         test_case: tc.TestCase,
         memo: dict[vr.VariableReference, vr.VariableReference],
     ) -> Statement:
-        new_rhs = self._rhs.clone_node(memo)
+        new_rhs = self._rhs.clone(memo)
         return ASTAssignStatement(test_case, new_rhs, {})
 
     def accept(self, visitor: StatementVisitor) -> None:
