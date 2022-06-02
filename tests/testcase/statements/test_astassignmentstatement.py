@@ -49,6 +49,28 @@ def test_delete_statement():
     assert out_test_case == expected_out
 
 
+def test_delete_statement_two_varrefs():
+    # This tests the replace operator of the AST
+    config.configuration.seeding.uninterpreted_statements = True
+    test_case_str = """def test_case_0():
+    int_0 = 0
+    int_1 = 1
+    int_2 = 2
+    var_0 = lambda x: x + int_1 + int_2"""
+
+    # Dummy test cluster
+    test_cluster = TestClusterGenerator(
+        "tests.fixtures.grammar.parameters"
+    ).generate_cluster()
+
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
+    assert len(test_cases) == 1
+    test_case = test_cases[0]
+    assert len(test_case.statements) == 4
+    TestFactory.delete_statement_gracefully(test_case, 1)
+    assert len(test_case.statements) == 3
+
+
 def test_ast_get_variable_refs():
     config.configuration.seeding.uninterpreted_statements = True
 

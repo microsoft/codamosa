@@ -264,10 +264,12 @@ class GenericMethod(GenericCallableAccessibleObject):
             return True
         if not isinstance(other, GenericMethod):
             return False
+        if self.owner != other.owner:
+            return False
         return self._callable == other._callable
 
     def __hash__(self):
-        return hash(self._callable)
+        return 17 * hash(self._callable) + hash(self.owner)
 
     def __repr__(self):
         return (

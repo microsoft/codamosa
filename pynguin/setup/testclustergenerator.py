@@ -87,6 +87,11 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
         self._analyzed_classes: set[type] = set()
         self._dependencies_to_solve: set[DependencyPair] = set()
         self._make_expandable_cluster = make_expandable
+        if make_expandable:
+            assert (
+                config.configuration.seeding.allow_expandable_cluster
+                or config.configuration.seeding.expand_cluster
+            )
         if not self._make_expandable_cluster:
             self._test_cluster = FullTestCluster()
         else:

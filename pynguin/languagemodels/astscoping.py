@@ -451,7 +451,9 @@ class VariableRefAST:
         Returns:
             a copy of this object, with new_var instead of old_var
         """
-        return self.clone({old_var: new_var})
+        replace_dict = {var_ref: var_ref for var_ref in self.get_all_var_refs()}
+        replace_dict[old_var] = new_var
+        return self.clone(replace_dict)
 
     def get_normal_ast(
         self, vr_replacer: Callable[[vr.VariableReference], ast.Name | ast.Attribute]

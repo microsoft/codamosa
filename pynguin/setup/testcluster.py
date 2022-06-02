@@ -12,7 +12,7 @@ import json
 import logging
 import typing
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from ordered_set import OrderedSet
 from typing_inspect import get_args, is_union_type
@@ -23,6 +23,8 @@ from pynguin.utils.exceptions import ConstructionFailedException
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericAccessibleObject,
     GenericCallableAccessibleObject,
+    GenericConstructor,
+    GenericMethod,
 )
 from pynguin.utils.type_utils import COLLECTIONS, PRIMITIVES
 
@@ -295,7 +297,7 @@ class ExpandableTestCluster(FullTestCluster):
     @property
     def all_accessible_objects(self) -> OrderedSet[GenericAccessibleObject]:
         ret_set = super().all_accessible_objects
-        return ret_set.union(self._backup_accessible_objects)
+        return ret_set.union(self._all_backups)
 
     def set_backup_mode(self, mode: bool):
         """
@@ -401,18 +403,26 @@ class ExpandableTestCluster(FullTestCluster):
                     if inspect.isclass(elem):
                         assert elem
                         # The constructor should be available via the name of the class.
-                        self.try_resolve_call(elem.__name__)
+                        constructors = [
+                            obj
+                            for obj in self._backup_accessible_objects
+                            if isinstance(obj, GenericConstructor)
+                            and obj.generated_type() == elem
+                        ]
+                        for constructor in constructors:
+                            self.promote_object(constructor)
 
             # Also retrieve all the methods for a constructor
             if func.is_constructor():
                 type_under_test = func.owner
                 assert type_under_test is not None
-                type_name = type_under_test.__name__
-                for method_name, _ in inspect.getmembers(
-                    type_under_test, inspect.isfunction
-                ):
-                    if not method_name == "__init__":
-                        self.try_resolve_call(type_name + "." + method_name)
+                methods = [
+                    obj
+                    for obj in self._backup_accessible_objects
+                    if isinstance(obj, GenericMethod) and obj.owner == type_under_test
+                ]
+                for method in methods:
+                    self.promote_object(method)
 
             # TODO: do we also add it to objects under test? No, we want to
             # add it as a generator, but of the correct type. I think that
@@ -473,47 +483,6 @@ class ExpandableTestCluster(FullTestCluster):
             True if obj was added in backup mode
         """
         return obj in self._all_backups
-
-    def try_resolve_call(self, call_name: str) -> Optional[GenericAccessibleObject]:
-        """Tries to resolve the function in call_name to an accessible object.
-
-        If call_name is found in the backup set of functions, it will be upgraded to the
-        set of testable objects (TODO: will it?)
-
-        Args:
-            call_name: the name of the function we are trying to resolve
-
-        Returns:
-            a GenericAccessibleObject matching `call_name`, or None if none is found.
-
-        """
-        if call_name in self._name_idx:
-            # TODO(clemieux): be smarter than just taking the first one?
-            gao_to_return = self._name_idx[call_name][0]
-            self.promote_object(gao_to_return)
-            return gao_to_return
-        return None
-
-    # TODO(clemieux): this is not used anywhere.
-    def try_resolve_method_call(
-        self, obj_type: type, call_name: str
-    ) -> Optional[GenericAccessibleObject]:
-        """Tries to resolve a method call to an accessible object.
-
-        Args:
-            obj_type: the type we are looking for methods of
-            call_name: the name of the method we are trying to resolve
-
-        Returns:
-            a GenericMethod matching `call_name`, or None if none is found.
-
-        """
-        idx = obj_type.__name__ + "." + call_name
-        if idx in self._name_idx:
-            gao_to_return = self._name_idx[idx][0]
-            self.promote_object(gao_to_return)
-            return gao_to_return
-        return None
 
 
 class FilteredTestCluster(TestCluster):

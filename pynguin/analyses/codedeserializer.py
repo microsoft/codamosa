@@ -351,27 +351,11 @@ class _StatementDeserializer:
         Returns:
             The corresponding statement.
         """
-        # TODO(clemieux): refactor so we don't have this special case...
-        # This part is still necessary to handle any lone function calls. Otherwise
-        # They will be caught in the try/except block below.
-        # This may also be necessary for promoted functions that don't make it into
-        # generator/modifier.
-        if config.configuration.seeding.allow_expandable_cluster:
-            logger.debug("Trying to find in expandable cluster")
-            gen_callable = self._test_cluster.try_resolve_call(  # type: ignore
-                ast.unparse(call.func)
-            )
-            if gen_callable is not None:
-                return self.assemble_stmt_from_gen_callable(gen_callable, call)
 
-        try:
-            call.func.attr  # type: ignore
-        except AttributeError:
-            return self.try_generating_specific_function(call)
         gen_callable = self.find_gen_callable(call)
         if gen_callable is None:
-            logger.info("No such function found: %s", ast.unparse(call.func))
-            return None
+            logger.debug("No such function found: %s", ast.unparse(call.func))
+            return self.try_generating_specific_function(call)
         if config.configuration.seeding.allow_expandable_cluster:
             self._test_cluster.promote_object(gen_callable)  # type: ignore
         return self.assemble_stmt_from_gen_callable(gen_callable, call)
@@ -404,7 +388,10 @@ class _StatementDeserializer:
             The corresponding generic accessible object under test. This can be a
             GenericConstructor, a GenericMethod or a GenericFunction.
         """
-        call_name = str(call.func.attr)  # type: ignore
+        if isinstance(call.func, ast.Name):
+            call_name = call.func.id
+        else:
+            call_name = str(call.func.attr)  # type: ignore
         try:
             call_id = call.func.value.id  # type: ignore
         except AttributeError:
