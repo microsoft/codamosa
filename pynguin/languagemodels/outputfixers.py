@@ -7,7 +7,7 @@
 
 import ast
 import logging
-from typing import Dict, List, Optional, Set, Any
+from typing import Any, Dict, List, Optional, Set
 
 from pynguin import configuration as config
 
@@ -68,16 +68,16 @@ def key_in_dict(value, d):
         return value in d
 
 
-def has_no_bound_variables(node: ast.AST, bound_variables: Set[str]) -> bool:
-    """Returns true if node has no references to the variables in `bound_variables.
+def has_bound_variables(node: ast.AST, bound_variables: Set[str]) -> bool:
+    """Returns true if node has references to the variables in `bound_variables`.
 
-     Args:
-         node: the node to visit
-         bound_variables: the set of variables which are bound
+    Args:
+        node: the node to visit
+        bound_variables: the set of variables which are bound
 
-     Returns:
-         true if node has no references to the variables in `bound_variables.
-     """
+    Returns:
+        true if node has references to the variables in `bound_variables`.
+    """
 
     class BoundVariableVisitor(ast.NodeVisitor):
         """Helper class that identifies if any names are in `bound_variables`"""
@@ -91,9 +91,7 @@ def has_no_bound_variables(node: ast.AST, bound_variables: Set[str]) -> bool:
 
     bound_variable_visitor = BoundVariableVisitor()
     bound_variable_visitor.visit(node)
-    return not bound_variable_visitor.has_bound_variable
-
-
+    return bound_variable_visitor.has_bound_variable
 
 
 class StmtRewriter(ast.NodeTransformer):
@@ -115,13 +113,18 @@ class StmtRewriter(ast.NodeTransformer):
         # We don't track this in e.g. function calls because there
         # are no scoping issues in extracting subexpressions there
         self._bound_variables: Set[str] = set()
+        self.replace_only_free_subnodes = False
+
+        self._bound_variables_stack: List[Set[str]] = []
+        self._replace_only_free_stack: List[bool] = []
+
         # State that matters for block-level scoping
         self.used_varnames: Set[str] = set()
         self.var_counter = 0
         self.constant_dict = {}
-        self.used_varnames_stack : List[Set[str]] = []
-        self.var_counter_stack : List[int] = []
-        self.constant_dict_stack : List[Dict[Any, ast.Name]] = []
+        self.used_varnames_stack: List[Set[str]] = []
+        self.var_counter_stack: List[int] = []
+        self.constant_dict_stack: List[Dict[Any, ast.Name]] = []
         super().__init__()
 
     ## Helpers ##
@@ -165,6 +168,10 @@ class StmtRewriter(ast.NodeTransformer):
             node.value, self.constant_dict
         ):
             varname = self.constant_dict[node.value]
+        elif self.replace_only_free_subnodes and has_bound_variables(
+            node, self._bound_variables
+        ):
+            return node
         else:
             varname = self.fresh_varname()
             if isinstance(node, ast.Constant):
@@ -177,7 +184,7 @@ class StmtRewriter(ast.NodeTransformer):
         name_node = ast.Name(varname, ctx=ast.Load())
         return name_node
 
-    def enter_new_scope(self):
+    def enter_new_block_scope(self):
         """Call when entering a new variable name scope"""
         self.used_varnames_stack.append(self.used_varnames)
         self.var_counter_stack.append(self.var_counter)
@@ -186,11 +193,22 @@ class StmtRewriter(ast.NodeTransformer):
         self.var_counter = 0
         self.constant_dict = {}
 
-    def exit_scope(self):
+    def exit_block_scope(self):
         """Call when exiting a new variable name scope"""
         self.used_varnames = self.used_varnames_stack.pop()
         self.var_counter = self.var_counter_stack.pop()
         self.constant_dict = self.constant_dict_stack.pop()
+
+    def enter_new_bound_scope(self):
+        """Call when visiting an expression that creates new bound vars."""
+        self._bound_variables_stack.append(set(self._bound_variables))
+        self._replace_only_free_stack.append(self.replace_only_free_subnodes)
+        self.replace_only_free_subnodes = True
+
+    def exit_bound_scope(self):
+        """Call when done visiting an expression that creates new bound vars."""
+        self._bound_variables = self._bound_variables_stack.pop()
+        self.replace_only_free_subnodes = self._replace_only_free_stack.pop()
 
     def get_stmts_to_add(self):
         """
@@ -210,7 +228,7 @@ class StmtRewriter(ast.NodeTransformer):
         Returns:
             a list of ast statements
         """
-        self.enter_new_scope()
+        self.enter_new_block_scope()
         new_body = []
         for stmt in block:
             new_stmt = self.visit(stmt)
@@ -218,7 +236,7 @@ class StmtRewriter(ast.NodeTransformer):
             self.reset_stmts_to_add()
             if new_stmt is not None:
                 new_body.append(new_stmt)
-        self.exit_scope()
+        self.exit_block_scope()
         return new_body
 
     def generic_visit(self, node):
@@ -284,45 +302,6 @@ class StmtRewriter(ast.NodeTransformer):
                 field_assign[field] = value
         return node.__class__(**field_assign)
 
-    def visit_only_free_subnodes(self, node, bound_variables: Set[str]):
-        """
-        Same as above but only visits subnodes which contain no bound variables
-
-        Args:
-            node: the node to visit
-            bound_variables: the set of bound variables
-
-        Returns:
-            the transformed node
-        """
-        field_assign = {}
-        for field, value in ast.iter_fields(node):
-            if isinstance(value, list):
-                new_value_lst = []
-                for item in value:
-                    if is_expr_or_stmt(item):
-                        if has_no_bound_variables(item, bound_variables):
-                            new_item = self.visit(item)
-                            item_name = self.replace_with_varname(new_item)
-                            new_value_lst.append(item_name)
-                        else:
-                            new_item = self.visit_only_free_subnodes(item, bound_variables)
-                            new_value_lst.append(new_item)
-                    else:
-                        new_value_lst.append(item)
-                field_assign[field] = new_value_lst
-            elif is_expr_or_stmt(value):
-                if has_no_bound_variables(value, bound_variables):
-                    new_value = self.visit(value)
-                    value_name = self.replace_with_varname(new_value)
-                    field_assign[field] = value_name
-                else:
-                    new_value = self.visit_only_free_subnodes(value, bound_variables)
-                    field_assign[field] = new_value
-            else:
-                field_assign[field] = value
-        return node.__class__(**field_assign)
-
     ## Cases with special handling ##
 
     def visit_Call(self, call: ast.Call):
@@ -382,9 +361,13 @@ class StmtRewriter(ast.NodeTransformer):
         new_value = self.visit(subscript.value)
         new_value = self.replace_with_varname(new_value)
 
-        return ast.Subscript(
-            value=new_value, slice=new_slice, ctx=subscript.ctx
-        )
+        return ast.Subscript(value=new_value, slice=new_slice, ctx=subscript.ctx)
+
+    def visit_UnaryOp(self, node):
+        if isinstance(node.operand, ast.Constant):
+            return node
+        else:
+            return self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> ast.Attribute:
         """When visiting attribute nodes, keep repeated dereferences if they are
@@ -587,16 +570,8 @@ class StmtRewriter(ast.NodeTransformer):
         node.finalbody = self.visit_block_helper(node.finalbody)
         return node
 
-    ## Things we want to leave unmodified ##
-
-    def visit_UnaryOp(self, node):
-        if isinstance(node.operand, ast.Constant):
-            return node
-        else:
-            return self.generic_visit(node)
-
-    def visit_Lambda(self, node: ast.Lambda) -> ast.Lambda:
-        bound_variables_before = set(self._bound_variables)
+    def visit_Lambda(self, node: ast.Lambda):
+        self.enter_new_bound_scope()
         all_args: ast.arguments = node.args
         for arg in all_args.args + all_args.kwonlyargs:
             arg_name = arg.arg
@@ -605,9 +580,46 @@ class StmtRewriter(ast.NodeTransformer):
             self._bound_variables.add(all_args.kwarg.arg)
         if all_args.vararg is not None:
             self._bound_variables.add(all_args.vararg.arg)
-        new_lambda = self.visit_only_free_subnodes(node, self._bound_variables)
-        self._bound_variables = bound_variables_before
+        new_lambda = self.generic_visit(node)
+        self.exit_bound_scope()
         return new_lambda
+
+    def get_comprehension_bound_vars(self, node: ast.comprehension) -> List[str]:
+        return [elem.id for elem in ast.walk(node.target) if isinstance(elem, ast.Name)]
+
+    def _visit_generators_common(self, generators: List[ast.comprehension]):
+        new_generators = []
+        for comp in generators:
+            self._bound_variables.update(self.get_comprehension_bound_vars(comp))
+            new_generators.append(self.visit(comp))
+        return new_generators
+
+    def visit_ListComp(self, node: ast.ListComp) -> ast.ListComp:
+        self.enter_new_bound_scope()
+        new_generators = self._visit_generators_common(node.generators)
+        new_elt = self.visit(node.elt)
+        ret_val = ast.ListComp(elt=new_elt, generators=new_generators)
+        self.exit_bound_scope()
+        return ret_val
+
+    def visit_SetComp(self, node: ast.SetComp) -> ast.SetComp:
+        self.enter_new_bound_scope()
+        new_generators = self._visit_generators_common(node.generators)
+        new_elt = self.visit(node.elt)
+        ret_val = ast.SetComp(elt=new_elt, generators=new_generators)
+        self.exit_bound_scope()
+        return ret_val
+
+    def visit_DictComp(self, node: ast.DictComp) -> ast.DictComp:
+        self.enter_new_bound_scope()
+        new_generators = self._visit_generators_common(node.generators)
+        new_key = self.visit(node.key)
+        new_value = self.visit(node.value)
+        ret_val = ast.DictComp(key=new_key, value=new_value, generators=new_generators)
+        self.exit_bound_scope()
+        return ret_val
+
+    ## Things we want to leave unmodified ##
 
     def visit_Import(self, node):
         return node

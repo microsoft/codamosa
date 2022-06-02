@@ -482,6 +482,7 @@ src_27 = """def test_bound_vars():
     lambda_0 = lambda x: x + 3
     lst_1 = [lambda_0(i) for i in lst_0]
     lst_2 = [foo.baz(i, 3) for i in lst_0]
+    lambda_1 = lambda *args, **varargs: args + varargs
 """
 src_27_res = """def test_bound_vars():
     var_0 = foo.bar()
@@ -493,6 +494,7 @@ src_27_res = """def test_bound_vars():
     lambda_0 = lambda x: x + var_1
     lst_1 = [lambda_0(i) for i in lst_0]
     lst_2 = [foo.baz(i, var_1) for i in lst_0]
+    lambda_1 = lambda *args, **varargs: args + varargs
 """
 
 
@@ -526,12 +528,11 @@ src_27_res = """def test_bound_vars():
         (src_25, src_25_res),
         (src_26, src_26_res),
         (src_27, src_27_res),
-
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):
     result_dict = rewrite_tests(original_src)
-    result = '\n'.join(list(result_dict.values()))
+    result = "\n".join(list(result_dict.values()))
     assert result == result_src, (
         f"Incorrect rewriting. Expected:\n{result_src}" f"\ngot: \n{result}"
     )
