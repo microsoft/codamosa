@@ -83,12 +83,16 @@ class StmtRewriter(ast.NodeTransformer):
     """
 
     def __init__(self):
-        self.used_varnames: Set[str] = set()
         self.stmts_to_add: List[ast.stmt] = []
-        self.toplevel = True
+        self.used_varnames: Set[str] = set()
         self.var_counter = 0
         self.constant_dict = {}
+        self.used_varnames_stack : List[Set[str]] = []
+        self.var_counter_stack : List[int] = []
+        self.constant_dict_stack : List[Dict[Any, ast.Name]] = []
         super().__init__()
+
+    ## Helpers ##
 
     def reset_stmts_to_add(self):
         """
@@ -141,6 +145,21 @@ class StmtRewriter(ast.NodeTransformer):
         name_node = ast.Name(varname, ctx=ast.Load())
         return name_node
 
+    def enter_new_scope(self):
+        """Call when entering a new variable name scope"""
+        self.used_varnames_stack.append(self.used_varnames)
+        self.var_counter_stack.append(self.var_counter)
+        self.constant_dict_stack.append(self.constant_dict)
+        self.used_varnames = set()
+        self.var_counter = 0
+        self.constant_dict = {}
+
+    def exit_scope(self):
+        """Call when exiting a new variable name scope"""
+        self.used_varnames = self.used_varnames_stack.pop()
+        self.var_counter = self.var_counter_stack.pop()
+        self.constant_dict = self.constant_dict_stack.pop()
+
     def get_stmts_to_add(self):
         """
         Get all the assignment statements that were created while visiting.
@@ -150,14 +169,25 @@ class StmtRewriter(ast.NodeTransformer):
         """
         return self.stmts_to_add
 
-    def get_used_varnames(self):
-        """
-        Get all the variable names that were created while visiting.
+    def visit_block_helper(self, block: List[ast.stmt]):
+        """Helper to visit a list of statements, as in a function body or if body.
+
+        Args:
+            block: the body to visit.
 
         Returns:
-            the variable names that were created while visiting.
+            a list of ast statements
         """
-        return self.used_varnames
+        self.enter_new_scope()
+        new_body = []
+        for stmt in block:
+            new_stmt = self.visit(stmt)
+            new_body.extend(self.get_stmts_to_add())
+            self.reset_stmts_to_add()
+            if new_stmt is not None:
+                new_body.append(new_stmt)
+        self.exit_scope()
+        return new_body
 
     def generic_visit(self, node):
         """
@@ -222,7 +252,7 @@ class StmtRewriter(ast.NodeTransformer):
                 field_assign[field] = value
         return node.__class__(**field_assign)
 
-    # Special cases
+    ## Cases with special handling ##
 
     def visit_Call(self, call: ast.Call):
         """
@@ -263,8 +293,26 @@ class StmtRewriter(ast.NodeTransformer):
         Returns:
             the transformed node
         """
+        if isinstance(subscript.slice, ast.Tuple):
+            new_slice_elts = []
+            for elem in subscript.slice.elts:
+                new_elem = self.visit(elem)
+                if isinstance(elem, ast.Slice):
+                    new_slice_elts.append(new_elem)
+                else:
+                    new_slice_elts.append(self.replace_with_varname(new_elem))
+            new_slice = ast.Tuple(elts=new_slice_elts, ctx=ast.Load())
+        elif isinstance(subscript.slice, ast.Slice):
+            new_slice = self.visit(subscript.slice)
+        else:
+            new_slice = self.visit(subscript.slice)
+            new_slice = self.replace_with_varname(new_slice)
+
+        new_value = self.visit(subscript.value)
+        new_value = self.replace_with_varname(new_value)
+
         return ast.Subscript(
-            value=self.visit(subscript.value), slice=subscript.slice, ctx=subscript.ctx
+            value=new_value, slice=new_slice, ctx=subscript.ctx
         )
 
     def visit_Attribute(self, node: ast.Attribute) -> ast.Attribute:
@@ -368,6 +416,9 @@ class StmtRewriter(ast.NodeTransformer):
         if isinstance(expr.value, ast.NamedExpr):
             rhs = self.visit(expr.value.value)
             return ast.Assign(targets=[expr.value.target], value=rhs)
+        # Don't mess with awaits/yields
+        if type(expr.value) in (ast.Await, ast.Yield, ast.YieldFrom):
+            return expr
         rhs = self.visit(expr.value)
         return ast.Assign(
             targets=[ast.Name(id=self.fresh_varname(), ctx=ast.Store)], value=rhs
@@ -403,31 +454,10 @@ class StmtRewriter(ast.NodeTransformer):
         if not fn_def_node.name.startswith("test_"):
             return fn_def_node
 
-        # Save state in case we're in a nested function
-        old_stmts_to_add = None
-        old_used_varnames = None
-        if self.stmts_to_add != []:
-            old_stmts_to_add = self.stmts_to_add
-        if len(self.used_varnames) > 0:
-            old_used_varnames = self.used_varnames
-
         # Visit the main body
-        self.used_varnames = set()
-        new_body = []
-        for stmt in fn_def_node.body:
-            self.reset_stmts_to_add()
-            new_stmt = self.visit(stmt)
-            new_body.extend(self.get_stmts_to_add())
-            if new_stmt is not None:
-                new_body.append(new_stmt)
+        new_body = self.visit_block_helper(fn_def_node.body)
         fn_def_node.body = new_body
         ast.fix_missing_locations(fn_def_node)
-
-        # Restore state
-        if old_stmts_to_add is not None:
-            self.stmts_to_add = old_stmts_to_add
-        if old_used_varnames is not None:
-            self.used_varnames = old_used_varnames
 
         return fn_def_node
 
@@ -453,29 +483,46 @@ class StmtRewriter(ast.NodeTransformer):
             )
         return node
 
-    # Things we don't want to recurse into
-
-    # The rewriter will be unhappy if the target of the unary op is anything
-    # but a constant, but we can try!
-    def visit_UnaryOp(self, node):
-        return node
-
-    def visit_While(self, node):
-        return node
+    # These could be simplified into a single visitor, but for the
+    # fact that we don't want to visit the tests/iterexpressions.
+    # That single visitor would just call visit_block_helper on any blocks
+    # (list of only statements.
+    #
+    # But we don't want to turn, e.g. the test for while into a
+    # subexpression.
 
     def visit_For(self, node):
+        node.body = self.visit_block_helper(node.body)
+        node.orelse = self.visit_block_helper(node.orelse)
+        return node
+
+    def visit_While(self, node: ast.While):
+        node.body = self.visit_block_helper(node.body)
+        node.orelse = self.visit_block_helper(node.orelse)
+        return node
+
+    def visit_If(self, node):
+        node.body = self.visit_block_helper(node.body)
+        node.orelse = self.visit_block_helper(node.orelse)
         return node
 
     def visit_With(self, node):
+        node.body = self.visit_block_helper(node.body)
         return node
 
-    def visit_Try(self, node):
+    def visit_Try(self, node: ast.Try):
+        node.body = self.visit_block_helper(node.body)
+        node.orelse = self.visit_block_helper(node.orelse)
+        node.finalbody = self.visit_block_helper(node.finalbody)
         return node
 
-    # TODO: maybe recurse into the body. But AstToTestCaseTransformer will not
-    #  handle this right now anyway.
-    def visit_If(self, node):
-        return node
+    ## Things we want to leave unmodified ##
+
+    def visit_UnaryOp(self, node):
+        if isinstance(node.operand, ast.Constant):
+            return node
+        else:
+            return self.generic_visit(node)
 
     def visit_Lambda(self, node):
         return node

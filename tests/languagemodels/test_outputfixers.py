@@ -286,6 +286,192 @@ src_15_res = """def test_module_qualification():
     chained_result = var_1.more_things()
 """
 
+src_16 = """def test_foo():
+    var_1 = foo(1, 3)
+"""
+src_16_res = """def test_foo():
+    var_0 = 1
+    var_2 = 3
+    var_1 = foo(var_0, var_2)
+"""
+
+src_17 = """def test_foo():
+    x = foo.lst[4]
+    lst_0 = [4, 4, 4]
+    y = lst_0[0:1:1]
+    z = lst_0[0:1, 1]
+"""
+
+src_17_res = """def test_foo():
+    var_0 = 4
+    var_1 = foo.lst
+    x = var_1[var_0]
+    lst_0 = [var_0, var_0, var_0]
+    var_2 = 0
+    var_3 = 1
+    y = lst_0[var_2:var_3:var_3]
+    z = lst_0[var_2:var_3, var_3]
+"""
+
+
+src_18 = """def test_foo():
+    (x, y) = (0, 1)
+"""
+
+src_18_res = """def test_foo():
+    var_0 = 0
+    var_1 = 1
+    (x, y) = (var_0, var_1)
+"""
+
+
+src_19 = """def test_nested():
+    x = foo(1)
+    def test_nestee(z):
+        y = bar(3, z)
+"""
+
+src_19_res = """def test_nested():
+    var_0 = 1
+    x = foo(var_0)
+
+    def test_nestee(z):
+        var_0 = 3
+        y = bar(var_0, z)
+"""
+
+src_20 = """def test_stuff():
+
+    class MyTest:
+        x : int = 3
+
+        def test_nestee(self, z):
+            y = bar(3, z)
+"""
+
+src_20_res = """def test_stuff():
+
+    class MyTest:
+        x: int = 3
+
+        def test_nestee(self, z):
+            var_0 = 3
+            y = bar(var_0, z)
+"""
+
+src_21 = """def test_stuff():
+
+    class MyTest:
+        x: int = 3
+"""
+
+src_21_res = """def test_stuff():
+
+    class MyTest:
+        x: int = 3
+"""
+
+
+src_22 = """def test_foo():
+    y = (x := 1)
+
+def test_bar():
+    y = (x := 1)
+
+pytest.main()
+"""
+src_22_res = """def test_foo():
+    x = 1
+    y = x
+
+def test_bar():
+    x = 1
+    y = x
+"""
+
+src_23 = """def test_foo():
+   y = baz(0)
+   z = bar(\"\"\"my test starts here
+"""
+
+src_23_res = """def test_foo():
+    var_0 = 0
+    y = baz(var_0)
+"""
+
+# Everything we don't support!!!
+src_24 = """def test_foo():
+    import boo
+    from baz import booboo
+    await foo(3)
+
+    async def main():
+        booboo(5, 8)
+    async for i in range(3):
+        booboo(5, 8)
+    async with open('bax') as f:
+        foo(f)
+"""
+
+src_25 = """def test_foo():
+    j = 5
+    for i in range(3,5):
+        y = foo(1)
+    while j > 3:
+        j = j - 1
+    try:
+        my_stuff = foo(1)
+    except:
+        pass
+    if j == 3:
+       foo(1)
+    elif j == 2:
+       foo(1)
+    else:
+       foo(1)
+    with open('file') as f:
+        x = foo(f)
+"""
+
+src_25_res = """def test_foo():
+    j = 5
+    for i in range(3, 5):
+        var_0 = 1
+        y = foo(var_0)
+    while j > 3:
+        var_0 = 1
+        j = j - var_0
+    try:
+        var_0 = 1
+        my_stuff = foo(var_0)
+    except:
+        pass
+    if j == 3:
+        var_0 = 1
+        var_1 = foo(var_0)
+    elif j == 2:
+        var_0 = 1
+        var_1 = foo(var_0)
+    else:
+        var_0 = 1
+        var_1 = foo(var_0)
+    with open('file') as f:
+        x = foo(f)
+"""
+
+src_26 = """def test_foo():
+    x = -1
+    z = -(1 + 3)
+"""
+
+src_26_res = """def test_foo():
+    x = -1
+    var_0 = 1
+    var_1 = 3
+    var_2 = var_0 + var_1
+    z = -var_2
+"""
+
 
 @pytest.mark.parametrize(
     "original_src,result_src",
@@ -305,11 +491,21 @@ src_15_res = """def test_module_qualification():
         (src_13, src_13_res),
         (src_14, src_14_res),
         (src_15, src_15_res),
+        (src_16, src_16_res),
+        (src_17, src_17_res),
+        (src_18, src_18_res),
+        (src_19, src_19_res),
+        (src_20, src_20_res),
+        (src_21, src_21_res),
+        (src_22, src_22_res),
+        (src_23, src_23_res),
+        (src_24, src_24),
+        (src_25, src_25_res)
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):
     result_dict = rewrite_tests(original_src)
-    result = list(result_dict.values())[0]
+    result = '\n'.join(list(result_dict.values()))
     assert result == result_src, (
         f"Incorrect rewriting. Expected:\n{result_src}" f"\ngot: \n{result}"
     )
