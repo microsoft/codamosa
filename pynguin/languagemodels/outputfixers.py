@@ -7,7 +7,7 @@
 
 import ast
 import logging
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Any
 
 from pynguin import configuration as config
 
@@ -68,6 +68,34 @@ def key_in_dict(value, d):
         return value in d
 
 
+def has_no_bound_variables(node: ast.AST, bound_variables: Set[str]) -> bool:
+    """Returns true if node has no references to the variables in `bound_variables.
+
+     Args:
+         node: the node to visit
+         bound_variables: the set of variables which are bound
+
+     Returns:
+         true if node has no references to the variables in `bound_variables.
+     """
+
+    class BoundVariableVisitor(ast.NodeVisitor):
+        """Helper class that identifies if any names are in `bound_variables`"""
+
+        def __init__(self):
+            self.has_bound_variable = False
+
+        def visit_Name(self, node: ast.Name):
+            if node.id in bound_variables:
+                self.has_bound_variable = True
+
+    bound_variable_visitor = BoundVariableVisitor()
+    bound_variable_visitor.visit(node)
+    return not bound_variable_visitor.has_bound_variable
+
+
+
+
 class StmtRewriter(ast.NodeTransformer):
     """
     Rewrites a statement as much as possible:
@@ -84,6 +112,10 @@ class StmtRewriter(ast.NodeTransformer):
 
     def __init__(self):
         self.stmts_to_add: List[ast.stmt] = []
+        # We don't track this in e.g. function calls because there
+        # are no scoping issues in extracting subexpressions there
+        self._bound_variables: Set[str] = set()
+        # State that matters for block-level scoping
         self.used_varnames: Set[str] = set()
         self.var_counter = 0
         self.constant_dict = {}
@@ -248,6 +280,45 @@ class StmtRewriter(ast.NodeTransformer):
                 new_value = self.visit(value)
                 value_name = self.replace_with_varname(new_value)
                 field_assign[field] = value_name
+            else:
+                field_assign[field] = value
+        return node.__class__(**field_assign)
+
+    def visit_only_free_subnodes(self, node, bound_variables: Set[str]):
+        """
+        Same as above but only visits subnodes which contain no bound variables
+
+        Args:
+            node: the node to visit
+            bound_variables: the set of bound variables
+
+        Returns:
+            the transformed node
+        """
+        field_assign = {}
+        for field, value in ast.iter_fields(node):
+            if isinstance(value, list):
+                new_value_lst = []
+                for item in value:
+                    if is_expr_or_stmt(item):
+                        if has_no_bound_variables(item, bound_variables):
+                            new_item = self.visit(item)
+                            item_name = self.replace_with_varname(new_item)
+                            new_value_lst.append(item_name)
+                        else:
+                            new_item = self.visit_only_free_subnodes(item, bound_variables)
+                            new_value_lst.append(new_item)
+                    else:
+                        new_value_lst.append(item)
+                field_assign[field] = new_value_lst
+            elif is_expr_or_stmt(value):
+                if has_no_bound_variables(value, bound_variables):
+                    new_value = self.visit(value)
+                    value_name = self.replace_with_varname(new_value)
+                    field_assign[field] = value_name
+                else:
+                    new_value = self.visit_only_free_subnodes(value, bound_variables)
+                    field_assign[field] = new_value
             else:
                 field_assign[field] = value
         return node.__class__(**field_assign)
@@ -524,8 +595,19 @@ class StmtRewriter(ast.NodeTransformer):
         else:
             return self.generic_visit(node)
 
-    def visit_Lambda(self, node):
-        return node
+    def visit_Lambda(self, node: ast.Lambda) -> ast.Lambda:
+        bound_variables_before = set(self._bound_variables)
+        all_args: ast.arguments = node.args
+        for arg in all_args.args + all_args.kwonlyargs:
+            arg_name = arg.arg
+            self._bound_variables.add(arg_name)
+        if all_args.kwarg is not None:
+            self._bound_variables.add(all_args.kwarg.arg)
+        if all_args.vararg is not None:
+            self._bound_variables.add(all_args.vararg.arg)
+        new_lambda = self.visit_only_free_subnodes(node, self._bound_variables)
+        self._bound_variables = bound_variables_before
+        return new_lambda
 
     def visit_Import(self, node):
         return node

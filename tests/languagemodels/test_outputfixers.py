@@ -14,15 +14,16 @@ def test_Try_map():
     Try.of(lambda x: x + 1, 1).map(lambda x: x * 2) == Try(3, True)
 """
 src_1_res = """def test_Try_map():
-    var_0 = lambda x: x + 1
-    var_1 = 1
-    var_2 = Try.of(var_0, var_1)
-    var_3 = lambda x: x * 2
-    var_4 = var_2.map(var_3)
-    var_5 = 3
-    var_6 = True
-    var_7 = Try(var_5, var_6)
-    var_8 = var_4 == var_7
+    var_0 = 1
+    var_1 = lambda x: x + var_0
+    var_2 = Try.of(var_1, var_0)
+    var_3 = 2
+    var_4 = lambda x: x * var_3
+    var_5 = var_2.map(var_4)
+    var_6 = 3
+    var_7 = True
+    var_8 = Try(var_6, var_7)
+    var_9 = var_5 == var_8
 """
 
 src_2 = """
@@ -36,9 +37,9 @@ src_2_res = """def test_Try_on_success():
 
     def success_callback(x):
         print(x)
-    var_0 = lambda x: x + 1
-    var_1 = 1
-    var_2 = Try.of(var_0, var_1)
+    var_0 = 1
+    var_1 = lambda x: x + var_0
+    var_2 = Try.of(var_1, var_0)
     var_3 = var_2.on_success(success_callback)
 """
 
@@ -472,6 +473,28 @@ src_26_res = """def test_foo():
     z = -var_2
 """
 
+# Note the semantics change slightly in case maybe_side_effect
+# has side-effects. Oh well.
+src_27 = """def test_bound_vars():
+    lst_0 = [obj for objs in foo.bar() for obj in objs]
+    set_0 = {i + 3 for i in lst_0}
+    dict_0 = {i: i + maybe_side_effect() for i in lst_0}
+    lambda_0 = lambda x: x + 3
+    lst_1 = [lambda_0(i) for i in lst_0]
+    lst_2 = [foo.baz(i, 3) for i in lst_0]
+"""
+src_27_res = """def test_bound_vars():
+    var_0 = foo.bar()
+    lst_0 = [obj for objs in var_0 for obj in objs]
+    var_1 = 3
+    set_0 = {i + var_1 for i in lst_0}
+    var_2 = maybe_side_effect()
+    dict_0 = {i: i + var_2 for i in lst_0}
+    lambda_0 = lambda x: x + var_1
+    lst_1 = [lambda_0(i) for i in lst_0]
+    lst_2 = [foo.baz(i, var_1) for i in lst_0]
+"""
+
 
 @pytest.mark.parametrize(
     "original_src,result_src",
@@ -500,7 +523,10 @@ src_26_res = """def test_foo():
         (src_22, src_22_res),
         (src_23, src_23_res),
         (src_24, src_24),
-        (src_25, src_25_res)
+        (src_25, src_25_res),
+        (src_26, src_26_res),
+        (src_27, src_27_res),
+
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):
