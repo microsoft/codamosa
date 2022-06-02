@@ -52,6 +52,8 @@ class VariableReferenceVisitor:
         Returns:
             a copy of the node, with `self._operator` applied to all VariableReferences
         """
+        if isinstance(node, vr.VariableReference):
+            return self._vr_operator(node)
 
         fields_to_assign = {}
         for field, old_value in ast.iter_fields(node):

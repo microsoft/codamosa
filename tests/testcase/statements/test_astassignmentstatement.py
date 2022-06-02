@@ -247,6 +247,13 @@ def test_not_equal_constants(test_cases_str):
     var_0 = lambda *x, **y: x + int_1 + y
     """
         ),
+        (
+            """def test_case_0():
+    int_0 = 1
+    var_0 = lambda x: x + int_0
+    var_1 = list(var_0)
+    """
+        ),
     ],
 )
 def test_clone_eq_ast_assign_tc(test_case_str):
