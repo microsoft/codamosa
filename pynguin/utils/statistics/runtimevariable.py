@@ -160,5 +160,8 @@ class RuntimeVariable(str, enum.Enum):
     # AST statements, but only for (builtin) calls
     LLMNeededUninterpretedCallsOnly = "LLMNeededUninterpretedCallsOnly"
 
+    # Timeline of number of tests saved during LLM stage over time
+    LLMSavedTestsTimeline = "LLMSavedTestsTimeline"
+
     def __repr__(self):
         return f"{self.name}"

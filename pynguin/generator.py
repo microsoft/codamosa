@@ -258,16 +258,6 @@ def _setup_language_model_seeding(
             config.configuration.codamosa.authorization_key
         )
         model.languagemodel.complete_model = config.configuration.codamosa.model_name
-        if (
-            config.configuration.codamosa.test_cases_log_path != ""
-            and not os.path.isdir(config.configuration.codamosa.test_cases_log_path)
-        ):
-            _LOGGER.error(
-                "The argument to --test_cases_log_path (%s) is not a valid directory.",
-                config.configuration.codamosa.test_cases_log_path,
-            )
-            return False
-        model.languagemodel.log_path = config.configuration.codamosa.test_cases_log_path
     else:
         return True
 

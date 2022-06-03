@@ -245,39 +245,39 @@ def test_not_equal_constants(test_cases_str):
 # End-to-end test of the ast assign statement's clone and eq. The first has no
 # uninterpreted assigns, actually... just checking nothing is going wrong.
 @pytest.mark.parametrize(
-    "test_case_str",
+    "test_case_str, num_statements",
     [
         (
             """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = module_0.positional_only(int_0, int_1)
-    """
+    """, 3
         ),
         (
             """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = lambda x: x + int_1
-    """
+    """, 3
         ),
         (
             """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = lambda *x, **y: x + int_1 + y
-    """
+    """, 3
         ),
         (
             """def test_case_0():
     int_0 = 1
     var_0 = lambda x: x + int_0
     var_1 = list(var_0)
-    """
+    """, 3
         ),
     ],
 )
-def test_clone_eq_ast_assign_tc(test_case_str):
+def test_clone_eq_ast_assign_tc(test_case_str, num_statements):
     config.configuration.seeding.uninterpreted_statements = True
     config.configuration.seeding.include_partially_parsable = True
 
@@ -289,7 +289,7 @@ def test_clone_eq_ast_assign_tc(test_case_str):
     test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster, True)
     assert len(test_cases) == 1
     test_case = test_cases[0]
-    assert len(test_case.statements) == 3
+    assert len(test_case.statements) == num_statements
     clone_test_case = test_case.clone()
     assert clone_test_case is not test_case
     assert clone_test_case.__hash__() == test_case.__hash__()

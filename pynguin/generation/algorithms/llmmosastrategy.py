@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING, Set
 
 from ordered_set import OrderedSet
@@ -23,6 +24,9 @@ from pynguin.ga.operators.ranking.crowdingdistance import (
 )
 from pynguin.generation.algorithms.abstractmosastrategy import AbstractMOSATestStrategy
 from pynguin.generation.export.pytestexporter import PyTestExporter
+from pynguin.generation.stoppingconditions.stoppingcondition import (
+    MaxSearchTimeStoppingCondition,
+)
 from pynguin.testcase.statement import (
     ASTAssignStatement,
     ConstructorStatement,
@@ -52,6 +56,24 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
         self._num_added_tests_needed_expansion = 0
         self._num_added_tests_needed_uninterp = 0
         self._num_added_tests_needed_calls = 0
+
+    def _log_num_codamosa_tests_added(self):
+        scs = [
+            sc
+            for sc in self.stopping_conditions
+            if isinstance(sc, MaxSearchTimeStoppingCondition)
+        ]
+        report_dir = config.configuration.statistics_output.report_dir
+        if len(scs) > 0 and report_dir != 'pynguin-report':
+            search_time: MaxSearchTimeStoppingCondition = scs[0]
+            with open(
+                os.path.join(report_dir, "codamosa_timeline.csv"),
+                "a+",
+                encoding="UTF-8",
+            ) as log_file:
+                log_file.write(
+                    f"{search_time.current_value()},{self._num_codamosa_tests_added}\n"
+                )
 
     def _register_added_testcase(self, test_case: tc.TestCase) -> None:
         """Register that test_case was a test case generated during the targeted
@@ -230,6 +252,7 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
                 test_case = chrom.test_case
                 if test_case not in original_population:
                     self._register_added_testcase(test_case)
+            self._log_num_codamosa_tests_added()
 
     def evolve(self) -> None:
         """Runs one evolution step."""

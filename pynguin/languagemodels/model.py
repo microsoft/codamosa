@@ -28,6 +28,7 @@ from pynguin.utils.generic.genericaccessibleobject import (
     GenericMethod,
 )
 from pynguin.utils.statistics.runtimevariable import RuntimeVariable
+import pynguin.configuration as config
 
 logger = logging.getLogger(__name__)
 
@@ -106,19 +107,6 @@ class _OpenAILanguageModel:
     @temperature.setter
     def temperature(self, temperature: float):
         self._temperature = temperature
-
-    @property
-    def log_path(self) -> str:
-        """Provides the current path where results are being logged
-
-        Returns:
-            The path where results are being logged
-        """
-        return self._log_path
-
-    @log_path.setter
-    def log_path(self, log_path: str):
-        self._log_path = log_path
 
     @property
     def test_src(self) -> str:
@@ -414,9 +402,10 @@ class _OpenAILanguageModel:
         )
         # Remove any trailing statements that don't parse
         generated_test = fixup_result(function_header + completion)
-        if self.log_path != "":
+        report_dir = config.configuration.statistics_output.report_dir
+        if report_dir != 'pynguin-report':
             with open(
-                os.path.join(self.log_path, "codex_generations.py"),
+                os.path.join(report_dir, "codex_generations.py"),
                 "a+",
                 encoding="UTF-8",
             ) as log_file:

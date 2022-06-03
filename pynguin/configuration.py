@@ -382,9 +382,6 @@ class CodaMosaConfiguration:
     num_seeds_to_inject: int = 10
     """Number of seeds to query the OpenAI model for"""
 
-    test_cases_log_path: str = ""
-    """If non-empty, the path to which to log all the generated test cases"""
-
     test_case_context: TestCaseContext = TestCaseContext.NONE
     """What extra context to pass to the LLM when querying for a new test case"""
 
