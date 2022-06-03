@@ -390,8 +390,11 @@ class _StatementDeserializer:
         """
         if isinstance(call.func, ast.Name):
             call_name = call.func.id
-        else:
+        elif isinstance(call.func, ast.Attribute):
             call_name = str(call.func.attr)  # type: ignore
+        else:
+            logger.debug(f"Strange function call: {ast.unparse(call)}")
+            return None
         try:
             call_id = call.func.value.id  # type: ignore
         except AttributeError:

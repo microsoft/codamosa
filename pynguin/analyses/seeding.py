@@ -532,7 +532,10 @@ class _LargeLanguageModelSeeding:
                     covered, total = coverage_in_range(
                         start_line, start_line + len(source_lines) - 1
                     )
-                    ordered_selection_probabilities.append(1 - (covered / total))
+                    if total > 0:
+                        ordered_selection_probabilities.append(1 - (covered / total))
+                    else:
+                        ordered_selection_probabilities.append(0)
                 except (TypeError, OSError):
                     ordered_selection_probabilities.append(0)
 
