@@ -22,6 +22,8 @@ from typing import (
     Dict,
     List,
     Optional,
+    Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -416,7 +418,7 @@ class _LargeLanguageModelSeeding:
 
     def get_targeted_testcase(
         self, prompt_gao: GenericCallableAccessibleObject, context=""
-    ) -> List[tc.TestCase]:
+    ) -> Sequence[tc.TestCase]:
         """
         Generate a new test case aimed at prompt_gao
 
@@ -429,7 +431,7 @@ class _LargeLanguageModelSeeding:
         """
         str_test_case = self._model.target_test_case(prompt_gao, context=context)
         use_uninterp_tuple = config.configuration.seeding.uninterpreted_statements.value
-        ret_testcases = []
+        ret_testcases: Set[tc.TestCase] = set()
         for use_uninterp in use_uninterp_tuple:
             logger.debug("Codex-generated testcase:\n%s", str_test_case)
             (
@@ -457,8 +459,8 @@ class _LargeLanguageModelSeeding:
                     stat.track_output_variable(
                         RuntimeVariable.ParsedStatements, self._parsed_statements
                     )
-            ret_testcases.extend(testcases)
-        return ret_testcases
+            ret_testcases.update(testcases)
+        return list(ret_testcases)
 
     @property
     def has_tests(self) -> bool:
@@ -574,7 +576,7 @@ class _LargeLanguageModelSeeding:
             ]
             ctx_test_cases.sort(key=lambda x: x[1])
 
-        targeted_test_cases = []
+        targeted_test_cases: List[tc.TestCase] = []
         for gao in randomness.choices(
             ordered_gaos, weights=ordered_selection_probabilities, k=num_samples
         ):

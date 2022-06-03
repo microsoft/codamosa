@@ -599,6 +599,14 @@ class StmtRewriter(ast.NodeTransformer):
             new_generators.append(self.visit(comp))
         return new_generators
 
+    def visit_GeneratorExp(self, node: ast.GeneratorExp) -> ast.GeneratorExp:
+        self.enter_new_bound_scope()
+        new_generators = self._visit_generators_common(node.generators)
+        new_elt = self.visit(node.elt)
+        ret_val = ast.GeneratorExp(elt=new_elt, generators=new_generators)
+        self.exit_bound_scope()
+        return ret_val
+
     def visit_ListComp(self, node: ast.ListComp) -> ast.ListComp:
         self.enter_new_bound_scope()
         new_generators = self._visit_generators_common(node.generators)

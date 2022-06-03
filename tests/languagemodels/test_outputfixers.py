@@ -525,6 +525,20 @@ src_29_res = """def test_choice():
     var_5 = var_0(items=var_4)
 """
 
+src_30 = """def test_generator_expr():
+    lst_0 = [i for i in range(10)]
+    has_gt_3 = any(i > 3 for i in lst_0)
+"""
+
+src_30_res = """def test_generator_expr():
+    var_0 = 10
+    var_1 = range(var_0)
+    lst_0 = [i for i in var_1]
+    var_2 = 3
+    var_3 = (i > var_2 for i in lst_0)
+    has_gt_3 = any(var_3)
+"""
+
 
 @pytest.mark.parametrize(
     "original_src,result_src",
@@ -558,6 +572,7 @@ src_29_res = """def test_choice():
         (src_27, src_27_res),
         (src_28, src_28_res),
         (src_29, src_29_res),
+        (src_30, src_30_res),
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):
