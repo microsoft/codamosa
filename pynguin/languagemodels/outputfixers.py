@@ -315,9 +315,9 @@ class StmtRewriter(ast.NodeTransformer):
         Returns:
             the transformed node
         """
-        func = call.func
-        if isinstance(func, ast.Attribute):
-            func = self.visit(func)
+        func = self.visit(call.func)
+        if not isinstance(func, ast.Attribute):
+            func = self.replace_with_varname(func)
         new_args = []
         for arg in call.args:
             if isinstance(arg, ast.Starred):
@@ -334,8 +334,9 @@ class StmtRewriter(ast.NodeTransformer):
         return ast.Call(func=func, args=new_args, keywords=new_kwargs)
 
     def visit_Subscript(self, subscript: ast.Subscript):
-        """
-        # TODO: what are we doing for subscripts?
+        """Subscripts can be both element accesses in a list/dict, or a
+        parameterization. Don't separate the LHS into its own variable
+        if it's an attribute reference.
 
         Args:
             subscript: the subscript node to visit
@@ -359,7 +360,6 @@ class StmtRewriter(ast.NodeTransformer):
             new_slice = self.replace_with_varname(new_slice)
 
         new_value = self.visit(subscript.value)
-        new_value = self.replace_with_varname(new_value)
 
         return ast.Subscript(value=new_value, slice=new_slice, ctx=subscript.ctx)
 
@@ -386,7 +386,12 @@ class StmtRewriter(ast.NodeTransformer):
         Returns:
             the transformed node
         """
-        return self.visit_only_calls_subnodes(node)
+        value_visited = self.visit(node.value)
+        if isinstance(node.value, ast.Attribute):
+            node.value = value_visited
+        else:
+            node.value = self.replace_with_varname(value_visited)
+        return node
 
     def visit_Assign(self, assign: ast.Assign):
         """

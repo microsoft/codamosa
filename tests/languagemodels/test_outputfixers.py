@@ -305,13 +305,12 @@ src_17 = """def test_foo():
 
 src_17_res = """def test_foo():
     var_0 = 4
-    var_1 = foo.lst
-    x = var_1[var_0]
+    x = foo.lst[var_0]
     lst_0 = [var_0, var_0, var_0]
-    var_2 = 0
-    var_3 = 1
-    y = lst_0[var_2:var_3:var_3]
-    z = lst_0[var_2:var_3, var_3]
+    var_1 = 0
+    var_2 = 1
+    y = lst_0[var_1:var_2:var_2]
+    z = lst_0[var_1:var_2, var_2]
 """
 
 
@@ -497,6 +496,35 @@ src_27_res = """def test_bound_vars():
     lambda_1 = lambda *args, **varargs: args + varargs
 """
 
+src_28="""def test_nested_attrs():
+    x = bar().baz(a)
+    y = my_thing[4].list.boo(x)
+    a = fs.bar[4].foo()
+"""
+
+src_28_res="""def test_nested_attrs():
+    var_0 = bar()
+    x = var_0.baz(a)
+    var_1 = 4
+    var_2 = my_thing[var_1]
+    y = var_2.list.boo(x)
+    var_3 = fs.bar[var_1]
+    a = var_3.foo()
+"""
+
+src_29="""def test_choice():
+    Choice()(items=['a', 'b', 'c'])
+"""
+
+src_29_res="""def test_choice():
+    var_0 = Choice()
+    var_1 = 'a'
+    var_2 = 'b'
+    var_3 = 'c'
+    var_4 = [var_1, var_2, var_3]
+    var_5 = var_0(items=var_4)
+"""
+
 
 @pytest.mark.parametrize(
     "original_src,result_src",
@@ -528,6 +556,8 @@ src_27_res = """def test_bound_vars():
         (src_25, src_25_res),
         (src_26, src_26_res),
         (src_27, src_27_res),
+        (src_28, src_28_res),
+        (src_29, src_29_res)
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):
