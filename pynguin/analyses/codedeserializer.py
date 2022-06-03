@@ -29,15 +29,40 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _count_all_statements(node) -> int:
+    """Counts the number of statements in node and all blocks, not including `node`
+
+    Args:
+        node: node to count statements for
+
+    Returns:
+        the number of child statements to node
+
+    """
+    num_non_assert_statements = 0
+    for _, value in ast.iter_fields(node):
+        # For all blocks
+        if isinstance(value, list) and all(
+            isinstance(elem, ast.stmt) for elem in value
+        ):
+            for elem in value:
+                if isinstance(elem, ast.Assert):
+                    continue
+                num_non_assert_statements += 1
+                num_non_assert_statements += _count_all_statements(elem)
+    return num_non_assert_statements
+
+
 # pylint: disable=too-many-return-statements
 class _StatementDeserializer:
     """All the utilities to deserialize statements represented as AST nodes
     into TestCase objects."""
 
-    def __init__(self, test_cluster: TestCluster):
+    def __init__(self, test_cluster: TestCluster, uninterpreted_statements=False):
         self._test_cluster = test_cluster
         self._ref_dict: Dict[str, vr.VariableReference] = {}
         self._testcase = dtc.DefaultTestCase()
+        self._uninterpreted_statements = uninterpreted_statements
 
     def get_test_case(self) -> dtc.DefaultTestCase:
         """Returns the parsed testcase
@@ -113,7 +138,7 @@ class _StatementDeserializer:
             new_stmt = self.create_stmt_from_collection(value)
         elif isinstance(value, ast.Attribute):
             new_stmt = self.create_stmt_from_field_access(value)
-        elif config.configuration.seeding.uninterpreted_statements:
+        elif self._uninterpreted_statements:
             new_stmt = self.create_ast_assign_stmt(value)
         else:
             logger.info(
@@ -391,9 +416,9 @@ class _StatementDeserializer:
         if isinstance(call.func, ast.Name):
             call_name = call.func.id
         elif isinstance(call.func, ast.Attribute):
-            call_name = str(call.func.attr)  # type: ignore
+            call_name = str(call.func.attr)
         else:
-            logger.debug(f"Strange function call: {ast.unparse(call)}")
+            logger.debug("Strange function call: %s", ast.unparse(call))
             return None
         try:
             call_id = call.func.value.id  # type: ignore
@@ -632,10 +657,7 @@ class _StatementDeserializer:
             __builtins__ if isinstance(__builtins__, dict) else __builtins__.__dict__
         )
 
-        if (
-            config.configuration.seeding.uninterpreted_statements
-            and func_id in builtins_dict
-        ):
+        if self._uninterpreted_statements and func_id in builtins_dict:
             return self.create_ast_assign_stmt(call)
 
         # Note: the functionality below actually results in incorrect semantics,
@@ -693,8 +715,15 @@ class _AstToTestCaseTransformer(ast.NodeVisitor):
     """An AST NodeVisitor that tries to convert an AST into our internal
     test case representation."""
 
-    def __init__(self, test_cluster: TestCluster, create_assertions: bool):
-        self._deserializer = _StatementDeserializer(test_cluster)
+    def __init__(
+        self,
+        test_cluster: TestCluster,
+        create_assertions: bool,
+        uninterpreted_statements: bool = False,
+    ):
+        self._deserializer = _StatementDeserializer(
+            test_cluster, uninterpreted_statements
+        )
         self._current_parsable: bool = True
         self._testcases: list[dtc.DefaultTestCase] = []
         self._number_found_testcases: int = 0
@@ -712,9 +741,7 @@ class _AstToTestCaseTransformer(ast.NodeVisitor):
         self._deserializer.reset()
         self._current_parsable = True
         self._current_parsed_statements = 0
-        self._current_max_num_statements = len(
-            [e for e in node.body if not isinstance(e, ast.Assert)]
-        )
+        self._current_max_num_statements = _count_all_statements(node)
         self.generic_visit(node)
         self.total_statements += self._current_max_num_statements
         self.total_parsed_statements += self._current_parsed_statements
@@ -767,13 +794,16 @@ class _AstToTestCaseTransformer(ast.NodeVisitor):
 
 
 def deserialize_code_to_testcases(
-    test_file_contents: str, test_cluster: TestCluster
+    test_file_contents: str,
+    test_cluster: TestCluster,
+    use_uninterpreted_statements: bool = False,
 ) -> Tuple[List[dtc.DefaultTestCase], int, int]:
     """Extracts as many TestCase objects as possible from the given code.
 
     Args:
         test_file_contents: code containing tests
         test_cluster: the TestCluster to deserialize with
+        use_uninterpreted_statements: whether or not to allow ASTAssignStatements
 
     Returns:
         A tuple consisting of (1) a list of TestCase extracted from the given code
@@ -784,6 +814,7 @@ def deserialize_code_to_testcases(
         test_cluster,
         config.configuration.test_case_output.assertion_generation
         != config.AssertionGenerator.NONE,
+        use_uninterpreted_statements,
     )
     transformer.visit(ast.parse(test_file_contents))
     return (

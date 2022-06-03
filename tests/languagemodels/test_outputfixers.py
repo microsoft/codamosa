@@ -496,13 +496,13 @@ src_27_res = """def test_bound_vars():
     lambda_1 = lambda *args, **varargs: args + varargs
 """
 
-src_28="""def test_nested_attrs():
+src_28 = """def test_nested_attrs():
     x = bar().baz(a)
     y = my_thing[4].list.boo(x)
     a = fs.bar[4].foo()
 """
 
-src_28_res="""def test_nested_attrs():
+src_28_res = """def test_nested_attrs():
     var_0 = bar()
     x = var_0.baz(a)
     var_1 = 4
@@ -512,11 +512,11 @@ src_28_res="""def test_nested_attrs():
     a = var_3.foo()
 """
 
-src_29="""def test_choice():
+src_29 = """def test_choice():
     Choice()(items=['a', 'b', 'c'])
 """
 
-src_29_res="""def test_choice():
+src_29_res = """def test_choice():
     var_0 = Choice()
     var_1 = 'a'
     var_2 = 'b'
@@ -557,7 +557,7 @@ src_29_res="""def test_choice():
         (src_26, src_26_res),
         (src_27, src_27_res),
         (src_28, src_28_res),
-        (src_29, src_29_res)
+        (src_29, src_29_res),
     ],
 )
 def test_rewrite_tests(original_src: str, result_src: str):

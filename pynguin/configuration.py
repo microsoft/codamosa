@@ -28,6 +28,22 @@ class ExportStrategy(str, enum.Enum):
     """Do not export test cases at all."""
 
 
+class UninterpretedStatementUse(tuple, enum.Enum):
+    """Whether to use ASTAssignStatements (aka uninterpreted statements)
+    when parsing targeted test cases.
+    """
+
+    NONE = (False,)
+    """Don't use the statements."""
+
+    ONLY = (True,)
+    """Parse test cases with uninterpreted statements, not what the test case
+     would have been without uninterpreted statements"""
+
+    BOTH = (True, False)
+    """Parse each generated test case with and without uninterpreted statements"""
+
+
 class Algorithm(str, enum.Enum):
     """Different algorithms supported by Pynguin."""
 
@@ -343,7 +359,7 @@ class SeedingConfiguration:
     seed_from_archive_mutations: int = 3
     """Number of mutations applied when sampling from the archive."""
 
-    uninterpreted_statements: bool = False
+    uninterpreted_statements: UninterpretedStatementUse = UninterpretedStatementUse.NONE
     """Whether to allow uninterpreted assignment statements in the parsed test cases"""
 
 

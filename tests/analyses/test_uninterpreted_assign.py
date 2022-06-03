@@ -21,13 +21,11 @@ def test_list_literal_uninterpreted_assign():
     int_2 = (int_0, int_1)
     var_0 = list(int_2)"""
 
-    config.configuration.seeding.uninterpreted_statements = True
-
     test_cluster = TestClusterGenerator(
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster)
+    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster, True)
     content = ExportProvider.get_exporter().export_sequences_to_str(testcases)
     assert (
         content == testcase_seed
@@ -41,14 +39,13 @@ def test_fail_to_parse_unbound_varref():
     int_0 = 0
     int_2 = [x + int_0 for x in lst_0]"""
 
-    config.configuration.seeding.uninterpreted_statements = True
     config.configuration.seeding.include_partially_parsable = True
 
     test_cluster = TestClusterGenerator(
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster)
+    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster, True)
     assert len(testcases) == 1
     assert len(testcases[0].statements) == 1
 
@@ -95,13 +92,11 @@ def test_case_0():
         + testcase_seed
     )
 
-    config.configuration.seeding.uninterpreted_statements = True
-
     test_cluster = TestClusterGenerator(
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster)
+    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster, True)
     content = ExportProvider.get_exporter().export_sequences_to_str(testcases)
     assert (
         content == testcase_seed
@@ -119,7 +114,6 @@ def test_case_0():
     var_2 = module_0.foo(var_1)
     var_3 = list(var_2)"""
 
-    config.configuration.seeding.uninterpreted_statements = True
     config.configuration.seeding.include_partially_parsable = True
     config.configuration.seeding.allow_expandable_cluster = True
 
@@ -127,7 +121,7 @@ def test_case_0():
         "tests.fixtures.cluster.list_annot", True
     ).generate_cluster()
 
-    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster)
+    testcases, _, _ = deserialize_code_to_testcases(testcase_seed, test_cluster, True)
     content = ExportProvider.get_exporter().export_sequences_to_str(testcases)
     assert (
         content == testcase_seed

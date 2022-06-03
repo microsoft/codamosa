@@ -40,7 +40,7 @@ def test_delete_statement():
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster, True)
     assert len(test_cases) == 1
     test_case = test_cases[0]
     assert len(test_case.statements) == 3
@@ -63,7 +63,7 @@ def test_delete_statement_two_varrefs():
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster, True)
     assert len(test_cases) == 1
     test_case = test_cases[0]
     assert len(test_case.statements) == 4
@@ -84,7 +84,7 @@ def test_ast_get_variable_refs():
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster, True)
     assert len(test_cases) == 1
     test_case = test_cases[0]
     assert len(test_case.statements) == 3
@@ -94,7 +94,6 @@ def test_ast_get_variable_refs():
 
 # End-to-end test of the ast assign statement's mutation operation
 def test_mutate_ast_assign_tc():
-    config.configuration.seeding.uninterpreted_statements = True
     config.configuration.seeding.include_partially_parsable = True
 
     test_case_str = """def test_case_0():
@@ -113,7 +112,7 @@ def test_mutate_ast_assign_tc():
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster, True)
     assert len(test_cases) == 1
     test_case = test_cases[0]
     orig_test_case = test_case.clone()
@@ -146,7 +145,7 @@ def test_mutate_differs():
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster, True)
     assert len(test_cases) == 1
     test_case = test_cases[0]
     mutants: Set[tc.TestCase] = set()
@@ -181,7 +180,7 @@ def test_mutate_ast_assign_no_options(test_case_str):
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster, True)
     assert len(test_cases) == 1
     test_case = test_cases[0]
     assert len(test_case.statements) == 2
@@ -238,7 +237,7 @@ def test_not_equal_constants(test_cases_str):
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    test_cases, _, _ = deserialize_code_to_testcases(test_cases_str, test_cluster)
+    test_cases, _, _ = deserialize_code_to_testcases(test_cases_str, test_cluster, True)
     assert len(test_cases) == 2
     assert test_cases[0] != test_cases[1]
 
@@ -287,7 +286,7 @@ def test_clone_eq_ast_assign_tc(test_case_str):
         "tests.fixtures.grammar.parameters"
     ).generate_cluster()
 
-    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster)
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_str, test_cluster, True)
     assert len(test_cases) == 1
     test_case = test_cases[0]
     assert len(test_case.statements) == 3

@@ -409,11 +409,14 @@ class _LargeLanguageModelSeeding:
         self._prompt_gaos[prompt_gao] -= 1
         if self._prompt_gaos[prompt_gao] == 0:
             self._prompt_gaos.pop(prompt_gao)
-        return self.get_targeted_testcase(prompt_gao)
+        testcases = self.get_targeted_testcase(prompt_gao)
+        if len(testcases) > 0:
+            return testcases[0]
+        return None
 
     def get_targeted_testcase(
         self, prompt_gao: GenericCallableAccessibleObject, context=""
-    ) -> Optional[tc.TestCase]:
+    ) -> List[tc.TestCase]:
         """
         Generate a new test case aimed at prompt_gao
 
@@ -425,32 +428,37 @@ class _LargeLanguageModelSeeding:
             A new generated test case, or None if a test case could not be parsed
         """
         str_test_case = self._model.target_test_case(prompt_gao, context=context)
-        logger.debug("Codex-generated testcase:\n%s", str_test_case)
-        (
-            testcases,
-            parsed_statements,
-            parsable_statements,
-        ) = deserialize_code_to_testcases(str_test_case, self._test_cluster)
-        if len(testcases) > 0:
-            testcase = testcases[0]
-            exporter = PyTestExporter(wrap_code=False)
-            logger.debug(
-                "Imported test case (%i/%i statements parsed):\n %s",
+        use_uninterp_tuple = config.configuration.seeding.uninterpreted_statements.value
+        ret_testcases = []
+        for use_uninterp in use_uninterp_tuple:
+            logger.debug("Codex-generated testcase:\n%s", str_test_case)
+            (
+                testcases,
                 parsed_statements,
                 parsable_statements,
-                exporter.export_sequences_to_str([testcase]),
+            ) = deserialize_code_to_testcases(
+                str_test_case, self._test_cluster, use_uninterp
             )
+            if len(testcases) > 0:
+                for testcase in testcases:
+                    exporter = PyTestExporter(wrap_code=False)
+                    logger.debug(
+                        "Imported test case (%i/%i statements parsed):\n %s",
+                        parsed_statements,
+                        parsable_statements,
+                        exporter.export_sequences_to_str([testcase]),
+                    )
 
-            self._parsable_statements += parsable_statements
-            self._parsed_statements += parsed_statements
-            stat.track_output_variable(
-                RuntimeVariable.ParsableStatements, self._parsable_statements
-            )
-            stat.track_output_variable(
-                RuntimeVariable.ParsedStatements, self._parsed_statements
-            )
-            return testcase
-        return None
+                    self._parsable_statements += parsable_statements
+                    self._parsed_statements += parsed_statements
+                    stat.track_output_variable(
+                        RuntimeVariable.ParsableStatements, self._parsable_statements
+                    )
+                    stat.track_output_variable(
+                        RuntimeVariable.ParsedStatements, self._parsed_statements
+                    )
+            ret_testcases.extend(testcases)
+        return ret_testcases
 
     @property
     def has_tests(self) -> bool:
@@ -584,9 +592,8 @@ class _LargeLanguageModelSeeding:
                 context = randomness.choice(ctx_test_cases)[0] + "\n\n"
             else:
                 context = ""
-            test_case = self.get_targeted_testcase(gao, context)
-            if test_case is not None:
-                targeted_test_cases.append(test_case)
+            test_cases = self.get_targeted_testcase(gao, context)
+            targeted_test_cases.extend(test_cases)
         return targeted_test_cases
 
 
