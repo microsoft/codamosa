@@ -56,6 +56,7 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
         self._num_added_tests_needed_expansion = 0
         self._num_added_tests_needed_uninterp = 0
         self._num_added_tests_needed_calls = 0
+        self._plateau_len = config.configuration.codamosa.max_plateau_len
 
     def _log_num_codamosa_tests_added(self):
         scs = [
@@ -178,7 +179,7 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             else:
                 its_without_update = 0
             last_num_covered_goals = num_covered_goals
-            if its_without_update > config.configuration.codamosa.max_plateau_len:
+            if its_without_update > self._plateau_len:
                 its_without_update = 0
                 self.evolve_targeted(self.create_test_suite(self._archive.solutions))
             else:
@@ -198,18 +199,10 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
         Args:
             test_suite: the test suite to base coverage off of.
         """
-        # If we are keeping track of what saved test cases get added in the
-        # output variables, do some extra analysis.
-        track_characteristics_of_solutions = (
-            RuntimeVariable.LLMNeededExpansion
-            in config.configuration.statistics_output.output_variables
-            or RuntimeVariable.LLMStageSavedTests
-            in config.configuration.statistics_output.output_variables
-        )
-        if track_characteristics_of_solutions:
-            original_population: Set[tc.TestCase] = {
-                chrom.test_case for chrom in self._population
-            }
+
+        original_population: Set[tc.TestCase] = {
+            chrom.test_case for chrom in self._population
+        }
 
         test_cases = languagemodelseeding.target_uncovered_functions(
             test_suite,
@@ -247,12 +240,19 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
                 test_case_chromosomes.append(offspring_2)
 
         self.evolve_common(test_case_chromosomes)
-        if track_characteristics_of_solutions:
-            for chrom in self._population:
-                test_case = chrom.test_case
-                if test_case not in original_population:
-                    self._register_added_testcase(test_case)
-            self._log_num_codamosa_tests_added()
+
+        added_tests = False
+        for chrom in self._population:
+            test_case = chrom.test_case
+            if test_case not in original_population:
+                added_tests = True
+                self._register_added_testcase(test_case)
+        self._log_num_codamosa_tests_added()
+        if not added_tests:
+            # If we were unsuccessful in adding tests, double the plateau
+            # length so we don't waste too much time querying codex.
+            self._plateau_len = 2*self._plateau_len
+
 
     def evolve(self) -> None:
         """Runs one evolution step."""
