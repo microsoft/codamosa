@@ -273,7 +273,7 @@ class VariableRefAST:
                 current_hash += 17 * hash(value)
             return current_hash
 
-        def hash_ast_helper(current_hash: int, node: ast.AST):
+        def hash_ast_helper(current_hash: int, node: ast.AST) -> int:
             field_dict = dict(ast.iter_fields(node))
             for field, value in field_dict.items():
                 current_hash += 17 * hash(field)
@@ -284,7 +284,7 @@ class VariableRefAST:
                     current_hash = value_hash(current_hash, value)
             return current_hash
 
-        return hash_ast_helper(31, self._node)
+        return value_hash(31, self._node)
 
     def structural_eq(
         self,
@@ -301,7 +301,7 @@ class VariableRefAST:
             whether second is struturally equal to self w.r.t. memo
         """
 
-        def value_equal_helper(first: Any, second: Any):
+        def value_equal_helper(first: Any, second: Any) -> bool:
             if type(first) != type(second):
                 return False
             elif isinstance(first, ast.AST):
@@ -311,7 +311,7 @@ class VariableRefAST:
             else:
                 return first == second
 
-        def equal_helper_ast(first: ast.AST, second: ast.AST):
+        def equal_helper_ast(first: ast.AST, second: ast.AST) -> bool:
             if type(first) != type(second):
                 return False
             first_fields = dict(ast.iter_fields(first))
@@ -334,7 +334,7 @@ class VariableRefAST:
                         return False
             return True
 
-        return equal_helper_ast(self._node, other._node)
+        return value_equal_helper(self._node, other._node)
 
     def clone(
         self, memo: Dict[vr.VariableReference, vr.VariableReference]

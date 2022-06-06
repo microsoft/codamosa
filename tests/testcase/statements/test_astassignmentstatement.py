@@ -279,6 +279,11 @@ def test_not_equal_constants(test_cases_str):
     """,
             3,
         ),
+        ("""def test_case_0():
+    int_0 = 1
+    var_0 = int_0
+    """, 2,
+         ),
     ],
 )
 def test_clone_eq_ast_assign_tc(test_case_str, num_statements):
