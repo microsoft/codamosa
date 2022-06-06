@@ -4,8 +4,9 @@
 #
 #  SPDX-License-Identifier: LGPL-3.0-or-later
 #
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 import pynguin.configuration as config
 from pynguin.analyses.seeding import languagemodelseeding
@@ -57,14 +58,20 @@ def test_uninterpreted_statement_options():
     test_case_lens = {len(test_case.statements) for test_case in test_cases}
     assert test_case_lens == {4, 6}
 
+
 @pytest.mark.parametrize(
     "return_value,num_statements",
-    [("""def test_case_0():
+    [
+        (
+            """def test_case_0():
     var_0 = 5
     var_1 = 0
     var_2 = [var_1, var_0]
     var_3 = positional_only(var_0, var_2)
-    """, 4),]
+    """,
+            4,
+        ),
+    ],
 )
 def test_uninterpreted_statement_no_reps(return_value, num_statements):
     config.configuration.seeding.include_partially_parsable = True
@@ -87,5 +94,3 @@ def test_uninterpreted_statement_no_reps(return_value, num_statements):
     assert len(test_cases) == 1
     test_case_lens = {len(test_case.statements) for test_case in test_cases}
     assert test_case_lens == {num_statements}
-
-

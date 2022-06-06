@@ -64,7 +64,7 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             if isinstance(sc, MaxSearchTimeStoppingCondition)
         ]
         report_dir = config.configuration.statistics_output.report_dir
-        if len(scs) > 0 and report_dir != 'pynguin-report':
+        if len(scs) > 0 and report_dir != "pynguin-report":
             search_time: MaxSearchTimeStoppingCondition = scs[0]
             with open(
                 os.path.join(report_dir, "codamosa_timeline.csv"),

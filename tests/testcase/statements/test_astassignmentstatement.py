@@ -252,28 +252,32 @@ def test_not_equal_constants(test_cases_str):
     int_0 = 0
     int_1 = 1
     var_0 = module_0.positional_only(int_0, int_1)
-    """, 3
+    """,
+            3,
         ),
         (
             """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = lambda x: x + int_1
-    """, 3
+    """,
+            3,
         ),
         (
             """def test_case_0():
     int_0 = 0
     int_1 = 1
     var_0 = lambda *x, **y: x + int_1 + y
-    """, 3
+    """,
+            3,
         ),
         (
             """def test_case_0():
     int_0 = 1
     var_0 = lambda x: x + int_0
     var_1 = list(var_0)
-    """, 3
+    """,
+            3,
         ),
     ],
 )

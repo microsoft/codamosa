@@ -16,6 +16,7 @@ from typing import Dict, List
 
 import requests
 
+import pynguin.configuration as config
 import pynguin.testcase.testcase as tc
 import pynguin.utils.statistics.statistics as stat
 from pynguin.generation.export.pytestexporter import PyTestExporter
@@ -28,7 +29,6 @@ from pynguin.utils.generic.genericaccessibleobject import (
     GenericMethod,
 )
 from pynguin.utils.statistics.runtimevariable import RuntimeVariable
-import pynguin.configuration as config
 
 logger = logging.getLogger(__name__)
 
@@ -403,7 +403,7 @@ class _OpenAILanguageModel:
         # Remove any trailing statements that don't parse
         generated_test = fixup_result(function_header + completion)
         report_dir = config.configuration.statistics_output.report_dir
-        if report_dir != 'pynguin-report':
+        if report_dir != "pynguin-report":
             with open(
                 os.path.join(report_dir, "codex_generations.py"),
                 "a+",
