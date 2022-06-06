@@ -77,4 +77,5 @@ fi
 pip install -r "${PACKAGE_DIR}/package.txt"
 
 # Execute Pynguin with all arguments passed to this script
+echo "Running: pynguin $@"
 pynguin "$@"
