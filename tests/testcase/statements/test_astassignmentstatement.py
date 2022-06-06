@@ -7,12 +7,14 @@
 
 
 from typing import TYPE_CHECKING, Set
+from unittest.mock import Mock
 
 import pytest
 
 import pynguin.configuration as config
 from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
 from pynguin.generation.export.exportprovider import ExportProvider
+from pynguin.languagemodels.outputfixers import rewrite_tests
 from pynguin.setup.testclustergenerator import TestClusterGenerator
 
 # End-to-end test of the ast assign statement's get_variable_references
@@ -303,3 +305,31 @@ def test_clone_eq_ast_assign_tc(test_case_str, num_statements):
     assert clone_test_case is not test_case
     assert clone_test_case.__hash__() == test_case.__hash__()
     assert test_case == clone_test_case
+
+
+def test_assign_field_stmt():
+    config.configuration.seeding.include_partially_parsable = True
+
+    test_case_src = """def test_case_0():
+    str_0 = 'a'
+    str_1 = 'b'
+    int_0 = 1
+    int_1 = 2
+    int_2 = {str_0: int_0, str_1: int_1}
+    var_4 = module_0.to_namedtuple(int_2)
+    var_5 = var_4.a
+    var_6 = module_0.to_namedtuple(int_2)
+    var_7 = var_6.b
+"""
+    # Real test cluster so we can parse the source
+    test_cluster = TestClusterGenerator(
+        "tests.fixtures.cluster.to_namedtuple"
+    ).generate_cluster()
+
+
+    test_cases, _, _ = deserialize_code_to_testcases(test_case_src, test_cluster, True)
+
+    import pynguin.utils.randomness as randomness
+    randomness.next_float = Mock()
+    randomness.next_float.return_value = 0
+    assert test_cases[0].statements[8].mutate()

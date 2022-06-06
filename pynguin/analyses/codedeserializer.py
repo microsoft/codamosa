@@ -136,8 +136,6 @@ class _StatementDeserializer:
             new_stmt = self.create_stmt_from_call(value)
         elif isinstance(value, (ast.List, ast.Set, ast.Dict, ast.Tuple)):
             new_stmt = self.create_stmt_from_collection(value)
-        elif isinstance(value, ast.Attribute):
-            new_stmt = self.create_stmt_from_field_access(value)
         elif self._uninterpreted_statements:
             new_stmt = self.create_ast_assign_stmt(value)
         else:
@@ -336,33 +334,6 @@ class _StatementDeserializer:
             "Could not find case for unary operator while handling assign statement."
         )
         return None
-
-    def create_stmt_from_field_access(
-        self, attr: ast.Attribute
-    ) -> stmt.FieldStatement | None:
-        """
-        Create the corresponding statement from an ast.Attribute node.
-
-        Args:
-            attr: the ast.Attribute statement
-
-        Returns:
-            The corresponding statement.
-        """
-        lhs = attr.value
-        if not isinstance(lhs, ast.Name):
-            # Only can be one level of attribute indirection
-            return None
-        attr_name = attr.attr
-        try:
-            lhs_var: vr.VariableReference = self._ref_dict[lhs.id]
-            owner_type = lhs_var.type
-            if owner_type is None:
-                return None
-            field_obj = GenericField(owner_type, attr_name, None)
-            return stmt.FieldStatement(self._testcase, field_obj, lhs_var)
-        except KeyError:
-            return None
 
     def create_stmt_from_call(
         self, call: ast.Call
