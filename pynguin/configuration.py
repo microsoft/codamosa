@@ -385,6 +385,9 @@ class CodaMosaConfiguration:
     test_case_context: TestCaseContext = TestCaseContext.NONE
     """What extra context to pass to the LLM when querying for a new test case"""
 
+    replay_generation_from_file: str = ""
+    """Rather than generating new model """
+
 
 @dataclasses.dataclass
 class MIOPhaseConfiguration:

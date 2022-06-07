@@ -6,13 +6,15 @@
 #
 import ast
 import inspect
+import itertools
 import json
 import logging
 import os
 import string
 import time
+from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Iterable
 
 import requests
 
@@ -411,13 +413,51 @@ class _OpenAILanguageModel:
             ) as log_file:
                 log_file.write(f"\n\n# Generated at {datetime.now()}\n")
                 log_file.write(generated_test)
-        else:
-            assert False
         generated_tests: Dict[str, str] = rewrite_tests(generated_test)
         for test_name in generated_tests:
             if test_name in function_header:
                 return generated_tests[test_name]
         return ""
+
+class FileMockedModel(_OpenAILanguageModel):
+
+    def __init__(self, filename: str):
+        assert (os.path.isfile(filename))
+        self._generation_bank : Dict[str, Iterable[str]] = {}
+        self._initialize_contents(filename)
+        super().__init__()
+
+    def _initialize_contents(self, filename):
+        contents_bank: Dict[str, List[str]] = defaultdict(list)
+        with open(filename, encoding='UTF-8') as generations_file:
+            all_lines = generations_file.readlines()
+            i = 0
+            while i < len(all_lines):
+                cur_line = all_lines[i]
+                if cur_line.startswith("# Generated at "):
+                    if i+2 > len(all_lines):
+                        break
+                    header = all_lines[i+1] + all_lines[i+2].rstrip()
+                    i = i + 3
+                    contents = []
+                    while i < len(all_lines) and not all_lines[i].startswith("# Generated at "):
+                        contents.append(all_lines[i])
+                        i = i + 1
+                    contents_bank[header].append(''.join(contents))
+                else:
+                    i = i+1
+        for header, contents_lst in contents_bank.items():
+            if len(contents_lst) > 0:
+                self._generation_bank[header] = itertools.cycle(contents_lst)
+
+    def _call_completion(
+        self, function_header: str, context_start: int, context_end: int
+    ) -> str:
+        if function_header in self._generation_bank:
+            ret_value =  "\n" + next(self._generation_bank[function_header])
+            return ret_value
+        else:
+            return "\npass\n"
 
 
 languagemodel = _OpenAILanguageModel()
