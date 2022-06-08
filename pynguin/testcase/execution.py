@@ -28,6 +28,7 @@ from ordered_set import OrderedSet
 import pynguin.testcase.statement_to_ast as stmt_to_ast
 import pynguin.utils.namingscope as ns
 from pynguin.analyses.controlflow import CFG, ControlDependenceGraph, ProgramGraphNode
+from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.utils.type_utils import (
     given_exception_matches,
     is_bytes,
@@ -1050,7 +1051,11 @@ class TestCaseExecutor:
                         result = return_queue.get(block=False)
                     except Empty as ex:
                         self._logger.error("Finished thread did not return a result.")
-                        raise RuntimeError("Bug in Pynguin!") from ex
+                        self._logger.info("Failed to run for this test case:\n%s",
+                                          PyTestExporter().export_sequences_to_str([test_case]))
+                        # TODO(clemieux): treat this as something else
+                        result = ExecutionResult(timeout=True)
+                        #raise RuntimeError("Bug in Pynguin!") from ex
                 self._after_test_case_execution(test_case, result)
         return result
 
@@ -1072,6 +1077,9 @@ class TestCaseExecutor:
             exception = self._execute_statement(statement, exec_ctx)
             self._after_statement_execution(statement, exec_ctx, exception)
             if exception is not None:
+                if isinstance(exception, RuntimeError):
+                    self._logger.info('RuntimeError raised when executing statement %i of test case:\n%s', idx,
+                                      PyTestExporter().export_sequences_to_str([test_case]))
                 result.report_new_thrown_exception(idx, exception)
                 break
         result_queue.put(result)
