@@ -53,6 +53,7 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
     def __init__(self):
         super().__init__()
         self._num_codamosa_tests_added = 0
+        self._num_mutant_codamosa_tests_added = 0
         self._num_added_tests_needed_expansion = 0
         self._num_added_tests_needed_uninterp = 0
         self._num_added_tests_needed_calls = 0
@@ -76,7 +77,7 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
                     f"{search_time.current_value()},{self._num_codamosa_tests_added}\n"
                 )
 
-    def _register_added_testcase(self, test_case: tc.TestCase) -> None:
+    def _register_added_testcase(self, test_case: tc.TestCase, was_mutant: bool) -> None:
         """Register that test_case was a test case generated during the targeted
         LLM generation phase, and any additional statistics we're tracking.
 
@@ -84,6 +85,8 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             test_case: the test case to register
         """
         self._num_codamosa_tests_added += 1
+        if was_mutant:
+            self._num_mutant_codamosa_tests_added += 1
         exporter = PyTestExporter(wrap_code=False)
         logger.info(
             "New population test case:\n %s",
@@ -142,6 +145,9 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
 
         stat.track_output_variable(
             RuntimeVariable.LLMStageSavedTests, self._num_codamosa_tests_added
+        )
+        stat.track_output_variable(
+            RuntimeVariable.LLMStageSavedMutants, self._num_mutant_codamosa_tests_added
         )
 
     def generate_tests(self) -> tsc.TestSuiteChromosome:
@@ -246,12 +252,16 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             test_case = chrom.test_case
             if test_case not in original_population:
                 added_tests = True
-                self._register_added_testcase(test_case)
+                if test_case not in test_cases:
+                    mutant = True
+                else:
+                    mutant = False
+                self._register_added_testcase(test_case, mutant)
         self._log_num_codamosa_tests_added()
         if not added_tests:
             # If we were unsuccessful in adding tests, double the plateau
             # length so we don't waste too much time querying codex.
-            self._plateau_len = 2*self._plateau_len
+            self._plateau_len = 2 * self._plateau_len
 
 
     def evolve(self) -> None:

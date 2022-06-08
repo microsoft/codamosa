@@ -148,6 +148,9 @@ class RuntimeVariable(str, enum.Enum):
     # Number of tests generated in the LLM stage that were saved
     LLMStageSavedTests = "LLMStageSavedTests"
 
+    # Number of tests gnerated in the LLM stage that were mutants
+    LLMStageSavedMutants = "LLMStageSavedMutants"
+
     # Number of saved LLM-generated tests that required cluster
     # expansion
     LLMNeededExpansion = "LLMNeededExpansion"
