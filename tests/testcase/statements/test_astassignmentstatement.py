@@ -14,7 +14,6 @@ import pytest
 import pynguin.configuration as config
 from pynguin.analyses.codedeserializer import deserialize_code_to_testcases
 from pynguin.generation.export.exportprovider import ExportProvider
-from pynguin.languagemodels.outputfixers import rewrite_tests
 from pynguin.setup.testclustergenerator import TestClusterGenerator
 
 # End-to-end test of the ast assign statement's get_variable_references
@@ -281,11 +280,13 @@ def test_not_equal_constants(test_cases_str):
     """,
             3,
         ),
-        ("""def test_case_0():
+        (
+            """def test_case_0():
     int_0 = 1
     var_0 = int_0
-    """, 2,
-         ),
+    """,
+            2,
+        ),
     ],
 )
 def test_clone_eq_ast_assign_tc(test_case_str, num_statements):
@@ -326,10 +327,10 @@ def test_assign_field_stmt():
         "tests.fixtures.cluster.to_namedtuple"
     ).generate_cluster()
 
-
     test_cases, _, _ = deserialize_code_to_testcases(test_case_src, test_cluster, True)
 
     import pynguin.utils.randomness as randomness
+
     randomness.next_float = Mock()
     randomness.next_float.return_value = 0
     assert test_cases[0].statements[8].mutate()

@@ -17,7 +17,6 @@ from pynguin.testcase.statement import ASTAssignStatement
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericCallableAccessibleObject,
     GenericConstructor,
-    GenericField,
     GenericFunction,
     GenericMethod,
 )
@@ -307,7 +306,9 @@ class _StatementDeserializer:
             return stmt.StringPrimitiveStatement(self._testcase, val)
         if isinstance(val, bytes):
             return stmt.BytesPrimitiveStatement(self._testcase, val)
-        logger.debug("Could not find case for constant while handling assign statement.")
+        logger.debug(
+            "Could not find case for constant while handling assign statement."
+        )
         return None
 
     def create_stmt_from_unaryop(

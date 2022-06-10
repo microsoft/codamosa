@@ -45,6 +45,7 @@ from pynguin.ga.computations import compute_branch_coverage
 from pynguin.generation.export.pytestexporter import PyTestExporter
 from pynguin.languagemodels.outputfixers import fixup_imports
 from pynguin.testcase.execution import ExecutionResult, TestCaseExecutor
+from pynguin.testcase.statement import ASTAssignStatement
 from pynguin.utils import randomness
 from pynguin.utils.generic.genericaccessibleobject import (
     GenericCallableAccessibleObject,
@@ -55,7 +56,6 @@ from pynguin.utils.statistics.runtimevariable import RuntimeVariable
 if TYPE_CHECKING:
     from pynguin.languagemodels.model import _OpenAILanguageModel
     from pynguin.setup.testcluster import TestCluster
-
 
 Types = Union[float, int, str]
 logger = logging.getLogger(__name__)
@@ -355,6 +355,7 @@ class _LargeLanguageModelSeeding:
         self._max_samples_per_prompt: int = 1
         self._parsed_statements = 0
         self._parsable_statements = 0
+        self._uninterp_statements = 0
 
     @property
     def model(self) -> _OpenAILanguageModel:
@@ -453,11 +454,21 @@ class _LargeLanguageModelSeeding:
 
                     self._parsable_statements += parsable_statements
                     self._parsed_statements += parsed_statements
+                    self._uninterp_statements += len(
+                        [
+                            stmt
+                            for stmt in testcase.statements
+                            if isinstance(stmt, ASTAssignStatement)
+                        ]
+                    )
                     stat.track_output_variable(
                         RuntimeVariable.ParsableStatements, self._parsable_statements
                     )
                     stat.track_output_variable(
                         RuntimeVariable.ParsedStatements, self._parsed_statements
+                    )
+                    stat.track_output_variable(
+                        RuntimeVariable.UninterpStatements, self._uninterp_statements
                     )
             ret_testcases.update(testcases)
         return list(ret_testcases)
@@ -609,6 +620,7 @@ class _InitialPopulationSeeding:
         self._sample_with_replacement: bool = True
         stat.track_output_variable(RuntimeVariable.ParsableStatements, 0)
         stat.track_output_variable(RuntimeVariable.ParsedStatements, 0)
+        stat.track_output_variable(RuntimeVariable.UninterpStatements, 0)
 
     @property
     def test_cluster(self) -> TestCluster:
@@ -729,6 +741,17 @@ class _InitialPopulationSeeding:
             RuntimeVariable.ParsableStatements, parsable_statements
         )
         stat.track_output_variable(RuntimeVariable.ParsedStatements, parsed_statements)
+        stat.track_output_variable(
+            RuntimeVariable.UninterpStatements,
+            len(
+                [
+                    stmt
+                    for testcase in self._testcases
+                    for stmt in testcase.statements
+                    if isinstance(stmt, ASTAssignStatement)
+                ]
+            ),
+        )
         self._remove_no_coverage_testcases()
         self._mutate_testcases_initially()
 

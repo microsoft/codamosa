@@ -139,6 +139,9 @@ class RuntimeVariable(str, enum.Enum):
     # Parsed Statements in seeded initial test cases
     ParsedStatements = "ParsedStatements"
 
+    # Parsed statements that had uninterpreted calls
+    UninterpStatements = "UninterpStatements"
+
     # Number of Calls to LLM
     LLMCalls = "LLMCalls"
 
@@ -162,9 +165,6 @@ class RuntimeVariable(str, enum.Enum):
     # Number of saved LLM-generated tests that required the use of uninterpreted
     # AST statements, but only for (builtin) calls
     LLMNeededUninterpretedCallsOnly = "LLMNeededUninterpretedCallsOnly"
-
-    # Timeline of number of tests saved during LLM stage over time
-    LLMSavedTestsTimeline = "LLMSavedTestsTimeline"
 
     def __repr__(self):
         return f"{self.name}"

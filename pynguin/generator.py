@@ -201,7 +201,7 @@ def _setup_initial_population_seeding(
         )
 
 
-# pylint: disable=too-many-return-statements
+# pylint: disable=too-many-return-statements,too-many-branches
 def _setup_language_model_seeding(
     test_cluster: TestCluster, executor: Optional[TestCaseExecutor] = None
 ) -> bool:
@@ -244,10 +244,9 @@ def _setup_language_model_seeding(
         model.languagemodel.edit_model = mutate_model
     elif config.configuration.algorithm == config.Algorithm.CODAMOSA:
         if (
-            (config.configuration.codamosa.authorization_key == ""
-            or config.configuration.codamosa.model_name == "")
-            and (config.configuration.codamosa.replay_generation_from_file == "")
-        ):
+            config.configuration.codamosa.authorization_key == ""
+            or config.configuration.codamosa.model_name == ""
+        ) and (config.configuration.codamosa.replay_generation_from_file == ""):
             _LOGGER.error(
                 "If --algorithm CODAMOSA is used, --authorization_key and "
                 "--model_name must be set. If replay is desired,"
@@ -255,17 +254,26 @@ def _setup_language_model_seeding(
             )
             return False
         if config.configuration.codamosa.replay_generation_from_file:
-            if not os.path.isfile(config.configuration.codamosa.replay_generation_from_file):
-                _LOGGER.error("The file %s does not exist", config.configuration.codamosa.replay_generation_from_file)
+            if not os.path.isfile(
+                config.configuration.codamosa.replay_generation_from_file
+            ):
+                _LOGGER.error(
+                    "The file %s does not exist",
+                    config.configuration.codamosa.replay_generation_from_file,
+                )
                 return False
-            model.languagemodel = model.FileMockedModel(config.configuration.codamosa.replay_generation_from_file)
+            model.languagemodel = model.FileMockedModel(
+                config.configuration.codamosa.replay_generation_from_file
+            )
         else:
             # Do these all need to be instance variables???
             model.languagemodel.temperature = config.configuration.codamosa.temperature
             model.languagemodel.authorization_key = (
                 config.configuration.codamosa.authorization_key
             )
-            model.languagemodel.complete_model = config.configuration.codamosa.model_name
+            model.languagemodel.complete_model = (
+                config.configuration.codamosa.model_name
+            )
     else:
         return True
 

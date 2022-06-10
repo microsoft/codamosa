@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Set
+from typing import TYPE_CHECKING, List, Set
 
 from ordered_set import OrderedSet
 
@@ -77,7 +77,9 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
                     f"{search_time.current_value()},{self._num_codamosa_tests_added}\n"
                 )
 
-    def _register_added_testcase(self, test_case: tc.TestCase, was_mutant: bool) -> None:
+    def _register_added_testcase(
+        self, test_case: tc.TestCase, was_mutant: bool
+    ) -> None:
         """Register that test_case was a test case generated during the targeted
         LLM generation phase, and any additional statistics we're tracking.
 
@@ -219,10 +221,9 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             tcc.TestCaseChromosome(test_case, self.test_factory)
             for test_case in test_cases
         ]
-        new_offspring = []
+        new_offspring: List[tcc.TestCaseChromosome] = []
         while (
-            len(new_offspring)
-            < config.configuration.search_algorithm.population
+            len(new_offspring) < config.configuration.search_algorithm.population
             and self.resources_left()
         ):
             offspring_1 = randomness.choice(test_case_chromosomes).clone()
@@ -253,17 +254,14 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             test_case = chrom.test_case
             if test_case not in original_population:
                 added_tests = True
-                if test_case not in test_cases:
-                    mutant = True
-                else:
-                    mutant = False
-                self._register_added_testcase(test_case, mutant)
+                # test_cases is the original generated test cases
+                mutated = test_case not in test_cases
+                self._register_added_testcase(test_case, mutated)
         self._log_num_codamosa_tests_added()
         if not added_tests:
             # If we were unsuccessful in adding tests, double the plateau
             # length so we don't waste too much time querying codex.
             self._plateau_len = 2 * self._plateau_len
-
 
     def evolve(self) -> None:
         """Runs one evolution step."""

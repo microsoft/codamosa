@@ -32,13 +32,6 @@ from pynguin.setup.testclustergenerator import TestClusterGenerator
     str_3 = {str_1: str_2}
     var_1 = module_0.all_params(float_0, int_0, *var_0, param4=str_0, **str_3)"""
         ),
-        (
-            """    int_0 = 2
-    a_0 = module_0.A(int_0)
-    var_0 = a_0.x
-    var_1 = a_0.y
-    var_2 = a_0.a"""
-        ),
     ],
 )
 def test_parameter_mapping_roundtrip(testcase_seed, tmp_path):

@@ -1027,8 +1027,9 @@ class TestCaseExecutor:
         Args:
             test_case: the test case that should be executed.
 
-        Raises:
-            RuntimeError: If something goes wrong inside Pynguin during execution.
+        # Not anymore!
+        # Raises:
+        #     RuntimeError: If something goes wrong inside Pynguin during execution.
 
         Returns:
             Result of the execution
@@ -1049,13 +1050,15 @@ class TestCaseExecutor:
                 else:
                     try:
                         result = return_queue.get(block=False)
-                    except Empty as ex:
+                    except Empty:
                         self._logger.error("Finished thread did not return a result.")
-                        self._logger.info("Failed to run for this test case:\n%s",
-                                          PyTestExporter().export_sequences_to_str([test_case]))
+                        self._logger.info(
+                            "Failed to run for this test case:\n%s",
+                            PyTestExporter().export_sequences_to_str([test_case]),
+                        )
                         # TODO(clemieux): treat this as something else
                         result = ExecutionResult(timeout=True)
-                        #raise RuntimeError("Bug in Pynguin!") from ex
+                        # raise RuntimeError("Bug in Pynguin!") from ex
                 self._after_test_case_execution(test_case, result)
         return result
 
@@ -1078,8 +1081,11 @@ class TestCaseExecutor:
             self._after_statement_execution(statement, exec_ctx, exception)
             if exception is not None:
                 if isinstance(exception, RuntimeError):
-                    self._logger.info('RuntimeError raised when executing statement %i of test case:\n%s', idx,
-                                      PyTestExporter().export_sequences_to_str([test_case]))
+                    self._logger.info(
+                        "RuntimeError raised when executing statement %i of:\n%s",
+                        idx,
+                        PyTestExporter().export_sequences_to_str([test_case]),
+                    )
                 result.report_new_thrown_exception(idx, exception)
                 break
         result_queue.put(result)

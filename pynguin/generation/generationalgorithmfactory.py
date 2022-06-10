@@ -32,8 +32,8 @@ from pynguin.ga.operators.ranking.rankingfunction import RankBasedPreferenceSort
 from pynguin.ga.operators.selection.rankselection import RankSelection
 from pynguin.ga.operators.selection.selection import SelectionFunction
 from pynguin.ga.operators.selection.tournamentselection import TournamentSelection
-from pynguin.generation.algorithms.dynamosastrategy import DynaMOSATestStrategy
 from pynguin.generation.algorithms.codamosastrategy import CodaMOSATestStrategy
+from pynguin.generation.algorithms.dynamosastrategy import DynaMOSATestStrategy
 from pynguin.generation.algorithms.mioteststrategy import MIOTestStrategy
 from pynguin.generation.algorithms.mosastrategy import MOSATestStrategy
 from pynguin.generation.algorithms.randomsearchstrategy import (

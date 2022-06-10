@@ -81,6 +81,13 @@ def test_fail_to_parse_unbound_varref():
     var_0 = int_0 + int_1
     var_1 = module_0.positional_only(var_0)"""
         ),
+        (
+            """    int_0 = 2
+    a_0 = module_0.A(int_0)
+    var_0 = a_0.x
+    var_1 = a_0.y
+    var_2 = a_0.a"""
+        ),
     ],
 )
 def test_uninterpreted_assign_roundtrip(testcase_seed):
