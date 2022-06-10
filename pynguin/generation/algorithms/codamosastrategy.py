@@ -219,8 +219,9 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
             tcc.TestCaseChromosome(test_case, self.test_factory)
             for test_case in test_cases
         ]
+        new_offspring = []
         while (
-            len(test_case_chromosomes)
+            len(new_offspring)
             < config.configuration.search_algorithm.population
             and self.resources_left()
         ):
@@ -240,12 +241,12 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
 
             self._mutate(offspring_1)
             if offspring_1.has_changed() and offspring_1.size() > 0:
-                test_case_chromosomes.append(offspring_1)
+                new_offspring.append(offspring_1)
             self._mutate(offspring_2)
             if offspring_2.has_changed() and offspring_2.size() > 0:
-                test_case_chromosomes.append(offspring_2)
+                new_offspring.append(offspring_2)
 
-        self.evolve_common(test_case_chromosomes)
+        self.evolve_common(test_case_chromosomes + new_offspring)
 
         added_tests = False
         for chrom in self._population:

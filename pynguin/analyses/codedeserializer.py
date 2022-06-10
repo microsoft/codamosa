@@ -139,7 +139,7 @@ class _StatementDeserializer:
         elif self._uninterpreted_statements:
             new_stmt = self.create_ast_assign_stmt(value)
         else:
-            logger.info(
+            logger.debug(
                 "Assign statement could not be parsed. (%s)", ast.unparse(assign)
             )
             new_stmt = None
@@ -307,7 +307,7 @@ class _StatementDeserializer:
             return stmt.StringPrimitiveStatement(self._testcase, val)
         if isinstance(val, bytes):
             return stmt.BytesPrimitiveStatement(self._testcase, val)
-        logger.info("Could not find case for constant while handling assign statement.")
+        logger.debug("Could not find case for constant while handling assign statement.")
         return None
 
     def create_stmt_from_unaryop(
@@ -330,7 +330,7 @@ class _StatementDeserializer:
             return stmt.FloatPrimitiveStatement(self._testcase, (-1) * val)
         if isinstance(val, int):
             return stmt.IntPrimitiveStatement(self._testcase, (-1) * val)
-        logger.info(
+        logger.debug(
             "Could not find case for unary operator while handling assign statement."
         )
         return None
@@ -719,13 +719,13 @@ class _AstToTestCaseTransformer(ast.NodeVisitor):
         current_testcase = self._deserializer.get_test_case()
         if self._current_parsable:
             self._testcases.append(current_testcase)
-            logger.info("Successfully imported %s.", node.name)
+            logger.debug("Successfully imported %s.", node.name)
         else:
             if (
                 self._current_parsed_statements > 0
                 and config.configuration.seeding.include_partially_parsable
             ):
-                logger.info(
+                logger.debug(
                     "Partially parsed %s. Retrieved %s/%s statements.",
                     node.name,
                     self._current_parsed_statements,
@@ -733,7 +733,7 @@ class _AstToTestCaseTransformer(ast.NodeVisitor):
                 )
                 self._testcases.append(current_testcase)
             else:
-                logger.info("Failed to parse %s.", node.name)
+                logger.debug("Failed to parse %s.", node.name)
 
     def visit_Assign(self, node: ast.Assign) -> Any:
         if (
