@@ -417,6 +417,20 @@ class _LargeLanguageModelSeeding:
             return testcases[0]
         return None
 
+    def get_random_targeted_testcase(self) -> Sequence[tc.TestCase]:
+        """
+        Generate a new test case (or multiple) aimed at a gao to be selected randomly
+
+        Returns:
+            A sequence of generated test cases
+        """
+
+        if self._prompt_gaos is None:
+            self._setup_gaos()
+            assert self._prompt_gaos is not None
+        prompt_gao = randomness.choice(list(self._prompt_gaos.keys()))
+        return self.get_targeted_testcase(prompt_gao)
+
     def get_targeted_testcase(
         self, prompt_gao: GenericCallableAccessibleObject, context=""
     ) -> Sequence[tc.TestCase]:
@@ -428,7 +442,7 @@ class _LargeLanguageModelSeeding:
             context: any additional context to pass
 
         Returns:
-            A new generated test case, or None if a test case could not be parsed
+            A sequence of generated test cases
         """
         str_test_case = self._model.target_test_case(prompt_gao, context=context)
         use_uninterp_tuple = config.configuration.seeding.uninterpreted_statements.value

@@ -385,6 +385,10 @@ class CodaMosaConfiguration:
     test_case_context: TestCaseContext = TestCaseContext.NONE
     """What extra context to pass to the LLM when querying for a new test case"""
 
+    target_low_coverage_functions: bool = True
+    """Whether or not to target low coverage functions. If false, target random
+    functions."""
+
     replay_generation_from_file: str = ""
     """Rather than generating new model """
 

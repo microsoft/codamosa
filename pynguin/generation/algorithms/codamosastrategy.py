@@ -211,12 +211,19 @@ class CodaMOSATestStrategy(AbstractMOSATestStrategy):
         original_population: Set[tc.TestCase] = {
             chrom.test_case for chrom in self._population
         }
+        if config.configuration.codamosa.target_low_coverage_functions:
+            test_cases = languagemodelseeding.target_uncovered_functions(
+                test_suite,
+                config.configuration.codamosa.num_seeds_to_inject,
+                self.resources_left,
+            )
+        else:
+            test_cases = []
+            for _ in range(config.configuration.codamosa.num_seeds_to_inject):
+                if not self.resources_left():
+                    break
+                test_cases.extend(languagemodelseeding.get_random_targeted_testcase())
 
-        test_cases = languagemodelseeding.target_uncovered_functions(
-            test_suite,
-            config.configuration.codamosa.num_seeds_to_inject,
-            self.resources_left,
-        )
         test_case_chromosomes = [
             tcc.TestCaseChromosome(test_case, self.test_factory)
             for test_case in test_cases
