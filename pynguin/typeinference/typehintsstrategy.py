@@ -29,9 +29,21 @@ class TypeHintsInferenceStrategy(TypeInferenceStrategy):
 
     @staticmethod
     def _infer_type_info_for_callable(method: Callable) -> InferredSignature:
-        signature = inspect.signature(method)
+        try:
+            signature = inspect.signature(method)
+        except (ValueError, TypeError):
+            # If inspect. fails to give us a signature, just assume we have none.
+            # This should not happen for functions in the main module under test
+            signature = inspect.Signature()
+
         parameters: dict[str, type | None] = {}
-        hints = typing.get_type_hints(method)
+        try:
+            hints = typing.get_type_hints(method)
+        except NameError:
+            # get_type_hints can fail to resolve types that include forward references;
+            # if this happens, just pretend we got no type hints rather than failing
+            # the entire run
+            hints = {}
         for param_name in signature.parameters:
             if param_name == "self":
                 continue
