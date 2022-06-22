@@ -133,6 +133,8 @@ class AbstractMOSATestStrategy(
         # In case inital population generation takes some time, start keeping track of
         # achieved coverage by the initial population
         for _ in range(config.configuration.search_algorithm.population):
+            if not self.resources_left():
+                break
             chromosome = self._chromosome_factory.get_chromosome()
             population.append(chromosome)
             if time.time() - last_rec_time > 1:

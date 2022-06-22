@@ -397,6 +397,20 @@ class _LargeLanguageModelSeeding:
         self._executor = executor
 
     @property
+    def sample_with_replacement(self) -> bool:
+        """Provides whether sampling with replacement is performed.
+
+        Returns:
+            Whether sampling with replacement is performed
+        """
+        return self._sample_with_replacement
+
+    @sample_with_replacement.setter
+    def sample_with_replacement(self, sample_with_replacement: bool):
+        self._sample_with_replacement = sample_with_replacement
+
+
+    @property
     def seeded_testcase(self) -> Optional[tc.TestCase]:
         """
         Generate a new test case. Prompt the language model with a generic accessible
@@ -405,13 +419,13 @@ class _LargeLanguageModelSeeding:
         Returns:
             A new generated test case, or None if a test case could not be parsed
         """
-
         assert self._prompt_gaos is not None
         assert len(self._prompt_gaos) > 0
         prompt_gao = randomness.choice(list(self._prompt_gaos.keys()))
-        self._prompt_gaos[prompt_gao] -= 1
-        if self._prompt_gaos[prompt_gao] == 0:
-            self._prompt_gaos.pop(prompt_gao)
+        if not self._sample_with_replacement:
+            self._prompt_gaos[prompt_gao] -= 1
+            if self._prompt_gaos[prompt_gao] == 0:
+                self._prompt_gaos.pop(prompt_gao)
         testcases = self.get_targeted_testcase(prompt_gao)
         if len(testcases) > 0:
             return testcases[0]

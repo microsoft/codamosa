@@ -21,7 +21,6 @@ from __future__ import annotations
 import datetime
 import enum
 import importlib
-import json
 import logging
 import os
 import sys
@@ -212,47 +211,26 @@ def _setup_language_model_seeding(
     if (
         config.configuration.seeding.large_language_model_seeding
         or config.configuration.seeding.large_language_model_mutation
+        or config.configuration.algorithm == config.Algorithm.CODAMOSA
     ):
-        _LOGGER.info("Trying to set up the large language model.")
-        config_file_name = config.configuration.seeding.large_language_model_config
-        if not os.path.isfile(config_file_name):
-            _LOGGER.error("The file %s does not exist", config_file_name)
-            return False
-
-        with open(config_file_name, "r", encoding="UTF-8") as config_file:
-            try:
-                config_dict = json.load(config_file)
-            except json.JSONDecodeError:
-                _LOGGER.error("%s is not valid JSON", config_file_name)
-                return False
-            if "AuthorizationKey" not in config_dict:
-                _LOGGER.error("No `AuthorizationKey` field in %s", config_file_name)
-                return False
-            if "GenerateModel" not in config_dict:
-                _LOGGER.error("no `GenerateModel` field in %s", config_file_name)
-                return False
-            if "MutateModel" not in config_dict:
-                _LOGGER.error("no `GenerateModel` field in %s", config_file_name)
-                return False
-            authorization_key = config_dict["AuthorizationKey"]
-            generate_model = config_dict["GenerateModel"]
-            mutate_model = config_dict["MutateModel"]
-
-        model.languagemodel.temperature = 1
-        model.languagemodel.authorization_key = authorization_key
-        model.languagemodel.complete_model = generate_model
-        model.languagemodel.edit_model = mutate_model
-    elif config.configuration.algorithm == config.Algorithm.CODAMOSA:
         if (
             config.configuration.codamosa.authorization_key == ""
             or config.configuration.codamosa.model_name == ""
         ) and (config.configuration.codamosa.replay_generation_from_file == ""):
             _LOGGER.error(
-                "If --algorithm CODAMOSA is used, --authorization_key and "
-                "--model_name must be set. If replay is desired,"
+                "If any of the following are set:\n"
+                " --algorithm CODAMOSA\n"
+                "--large_language_model_seeding True\n"
+                "--large_language_model_mutation True\n"
+                "--authorization_key and --model_name must be set. Or, to replay,"
                 "--replay_generation_from_file must be set"
             )
             return False
+        if config.configuration.seeding.large_language_model_mutation:
+            _LOGGER.error(
+                "Mutation currently unsupported --- the OpenAI edit models throttle."
+            )
+        _LOGGER.info("Trying to set up the large language model.")
         if config.configuration.codamosa.replay_generation_from_file:
             if not os.path.isfile(
                 config.configuration.codamosa.replay_generation_from_file
@@ -266,7 +244,6 @@ def _setup_language_model_seeding(
                 config.configuration.codamosa.replay_generation_from_file
             )
         else:
-            # Do these all need to be instance variables???
             model.languagemodel.temperature = config.configuration.codamosa.temperature
             model.languagemodel.authorization_key = (
                 config.configuration.codamosa.authorization_key
@@ -290,6 +267,7 @@ def _setup_language_model_seeding(
     seeding.languagemodelseeding.model = model.languagemodel
     seeding.languagemodelseeding.test_cluster = test_cluster
     seeding.languagemodelseeding.executor = executor
+    seeding.languagemodelseeding.sample_with_replacement = config.configuration.seeding.sample_with_replacement
     return True
 
 
