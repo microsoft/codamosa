@@ -409,7 +409,6 @@ class _LargeLanguageModelSeeding:
     def sample_with_replacement(self, sample_with_replacement: bool):
         self._sample_with_replacement = sample_with_replacement
 
-
     @property
     def seeded_testcase(self) -> Optional[tc.TestCase]:
         """
@@ -624,11 +623,13 @@ class _LargeLanguageModelSeeding:
             if (
                 config.configuration.codamosa.test_case_context
                 == config.TestCaseContext.SMALLEST
+                and len(ctx_test_cases) > 0
             ):
                 context = ctx_test_cases[0][0] + "\n\n"
             elif (
                 config.configuration.codamosa.test_case_context
                 == config.TestCaseContext.RANDOM
+                and len(ctx_test_cases) > 0
             ):
                 context = randomness.choice(ctx_test_cases)[0] + "\n\n"
             else:

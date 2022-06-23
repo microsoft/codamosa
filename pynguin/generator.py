@@ -267,7 +267,9 @@ def _setup_language_model_seeding(
     seeding.languagemodelseeding.model = model.languagemodel
     seeding.languagemodelseeding.test_cluster = test_cluster
     seeding.languagemodelseeding.executor = executor
-    seeding.languagemodelseeding.sample_with_replacement = config.configuration.seeding.sample_with_replacement
+    seeding.languagemodelseeding.sample_with_replacement = (
+        config.configuration.seeding.sample_with_replacement
+    )
     return True
 
 
