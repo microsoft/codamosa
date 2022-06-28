@@ -19,7 +19,7 @@ Here is an example run, given that the `flutils` project is cloned under `$TEST_
 ```
 $ mkdir /tmp/flutils-out
 $ docker run --rm -v $TEST_BASE/test-apps/flutils:/input:ro -v /tmp/flutils-out:/output \
-    -v $TEST_BASE/test-apps/flutils:/package:ro codamosa-runner --project_path /input 
+    -v $TEST_BASE/test-apps/flutils:/package:ro codamosa-runner --project_path /input \
     --module-name flutils.packages --output-path /output  --report-dir /output --maximum_search_time 120 \
     --output_variables TargetModule,CoverageTimeline --coverage_metrics BRANCH,LINE  --assertion-generation NONE \
     --algorithm CODAMOSA -v --include-partially-parsable True --allow-expandable-cluster True \
