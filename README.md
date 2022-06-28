@@ -15,11 +15,20 @@ docker run --rm -v TARGET_PROJECT_DIRECTORY:/input:ro -v OUTPUT_DIRECTORY:/outpu
 ```
 there must be a file called package.txt in `TARGET_PROJECT_DIRECTORY` which contains all the requirements that need to be installed for the target project in the `requirements.txt` format. The `pipreqs` tool can help you generate one automatically. 
 
-
+Here is an example run, given that the `flutils` project is cloned under `$TEST_BASE/test-apps`, and there is a `package.txt` file in `test-apps/pipreqs`
 ```
-CMD="docker run --rm -v ${TEST_DIR}:/input:ro -v ${OUT_DIR}:/output -v ${TEST_DIR}:/package:ro pynguin-runner-local --assertion-generation NONE --project_path /input --module-name ${TEST_MOD} --output-path /output --maximum_search_time $SEARCH_TIME --output_variables TargetModule,Coverage,BranchCoverage,LineCoverage,ParsedStatements,UninterpStatements,ParsableStatements,LLMCalls,LLMQueryTime,LLMStageSavedTests,LLMStageSavedMutants,LLMNeededExpansion,LLMNeededUninterpreted,LLMNeededUninterpretedCallsOnly,RandomSeed,AccessibleObjectsUnderTest,CodeObjects,CoverageTimeline --report-dir /output --coverage_metrics BRANCH,LINE $ARGS --authorization-key $AUTH_KEY -v"
+$ mkdir /tmp/flutils-out
+$ docker run --rm -v $TEST_BASE/test-apps/flutils:/input:ro -v /tmp/flutils-out:/output \
+    -v $TEST_BASE/test-apps/flutils:/package:ro codamosa-runner --project_path /input 
+    --module-name flutils.packages --output-path /output  --report-dir /output --maximum_search_time 120 \
+    --output_variables TargetModule,CoverageTimeline --coverage_metrics BRANCH,LINE  --assertion-generation NONE \
+    --algorithm CODAMOSA -v --include-partially-parsable True --allow-expandable-cluster True \
+    --uninterpreted_statements ONLY --temperature 0.8 --model_name code-davinci-002 --authorization-key $AUTH_KEY"
 ```
-
 
 For general information about pynguin, refer to Pynguin-README.md in this repository.
+
+## Replication package
+
+For information about replicating the results in the ICSE'23 paper, follow the instructions in the [artifact repo](https://github.com/carolemieux/codamosa-repl).
 
