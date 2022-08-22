@@ -92,7 +92,7 @@ def test_resolve_dependenices():
     assert len(cluster.accessible_objects_under_test) == 3
     # 3 non primitive types in args
     assert len(cluster.generators) == 3
-    # TODO(clemieux) This test is wrong. The assert below fails because
+    # TODO(ANON) This test is wrong. The assert below fails because
     # typing_inspect does not yet support union types specified with |
     # names = [t.__name__ for t in cluster.generators.keys()]
     # assert ['SomeArgumentType', 'SomeOtherType', 'YetAnotherType'] == names, f'{names}'

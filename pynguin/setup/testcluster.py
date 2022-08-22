@@ -569,7 +569,7 @@ class FilteredTestCluster(TestCluster):
 
     @property
     def all_accessible_objects(self) -> OrderedSet[GenericAccessibleObject]:
-        # TODO(clemieux): These are not filtered
+        # TODO(ANON): These are not filtered
         ret_set: OrderedSet[GenericAccessibleObject] = OrderedSet()
         ret_set = ret_set.union(self.accessible_objects_under_test)
         for vals in self.modifiers.values():

@@ -1056,7 +1056,7 @@ class TestCaseExecutor:
                             "Failed to run for this test case:\n%s",
                             PyTestExporter().export_sequences_to_str([test_case]),
                         )
-                        # TODO(clemieux): treat this as something else
+                        # TODO(ANON): treat this as something else
                         result = ExecutionResult(timeout=True)
                         # raise RuntimeError("Bug in Pynguin!") from ex
                 self._after_test_case_execution(test_case, result)

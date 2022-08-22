@@ -60,7 +60,7 @@ class Algorithm(str, enum.Enum):
     """The many-objective sorting algorithm (cf. Panichella et al. Reformulating Branch
     Coverage as a Many-Objective Optimization Problem.  Proc. ICST 2015)."""
 
-    # TODO(clemieux): elaborate
+    # TODO(ANON): elaborate
     CODAMOSA = "CODAMOSA"
     """MOSA + Codex :)"""
 

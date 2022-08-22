@@ -331,7 +331,7 @@ class TestClusterGenerator:  # pylint: disable=too-few-public-methods
                     )
                     self._test_cluster.add_modifier(klass, generic_method)
                     self._test_cluster.set_backup_mode(False)  # type: ignore
-                # TODO(clemieux): this doesn't keep track of callable dependencies...
+                # TODO(ANON): this doesn't keep track of callable dependencies...
                 # in most cases if it's a class we're directly inheriting, we should
                 # be importing that class and resolving the dependencies there.
                 continue

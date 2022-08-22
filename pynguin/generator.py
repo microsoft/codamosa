@@ -205,8 +205,8 @@ def _setup_language_model_seeding(
     test_cluster: TestCluster, executor: Optional[TestCaseExecutor] = None
 ) -> bool:
     """Sets up the large language model seeding"""
-    # TODO(clemieux): tests?
-    # TODO(clemieux): needs cleaning, ideally by removing support for
+    # TODO(ANON): tests?
+    # TODO(ANON): needs cleaning, ideally by removing support for
     # independent large language model seeding. Keeping now for experiment purposes.
     if (
         config.configuration.seeding.large_language_model_seeding

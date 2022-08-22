@@ -80,7 +80,7 @@ def approx_number_tokens(line: str):
 class _OpenAILanguageModel:
     """
     An interface for an OpenAI language model to generate/mutate tests as natural language.
-    TODO(clemieux): starting by implementing a concrete instance of this.
+    TODO(ANON): starting by implementing a concrete instance of this.
     """
 
     def __init__(self):
@@ -89,9 +89,9 @@ class _OpenAILanguageModel:
         self._complete_model: str
         self._edit_model: str
         self._log_path: str = ""
-        # TODO(clemieux): make configurable; adding a fudge factor
+        # TODO(ANON): make configurable; adding a fudge factor
         self._max_query_len = 4000 - 200
-        # TODO(clemieux): make configurable
+        # TODO(ANON): make configurable
         self._temperature: float
         self._token_len_cache = {}
         self.num_codex_calls: int = 0
