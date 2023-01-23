@@ -737,11 +737,14 @@ class _InitialPopulationSeeding:
             logger.info("Provided testcases are not used.")
             return
         try:
+            use_uninterp_tuple = config.configuration.seeding.uninterpreted_statements.value
+            if len(use_uninterp_tuple) > 1:
+                raise NotImplementedError("--uninterpreted_statements BOTH not supported with initial population seeding")
             (
                 test_cases,
                 parsed_statements,
                 parsable_statements,
-            ) = deserialize_code_to_testcases(code, self._test_cluster)
+            ) = deserialize_code_to_testcases(code, self._test_cluster, use_uninterp_tuple[0])
         # In case ast.parse throws
         except BaseException as exception:  # pylint: disable=broad-except
             logger.exception("Cannot read module: %s", exception)

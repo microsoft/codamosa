@@ -276,6 +276,7 @@ class ImmediateStopCondition(StoppingCondition):
             max_iterations: the maximum number of allowed iterations.
         """
         super().__init__()
+        self.should_stop = False
 
     def current_value(self) -> int:
         return 0
@@ -284,7 +285,7 @@ class ImmediateStopCondition(StoppingCondition):
         return 0
 
     def is_fulfilled(self) -> bool:
-        return True
+        return self.should_stop
 
     def reset(self) -> None:
         pass
@@ -294,6 +295,9 @@ class ImmediateStopCondition(StoppingCondition):
 
     def before_search_start(self, start_time_ns: int) -> None:
         pass
+
+    def before_first_search_iteration(self, initial: tsc.TestSuiteChromosome) -> None:
+        self.should_stop = True
 
     def after_search_iteration(self, best: tsc.TestSuiteChromosome) -> None:
         pass
