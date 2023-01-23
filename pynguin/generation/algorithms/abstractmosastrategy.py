@@ -142,6 +142,6 @@ class AbstractMOSATestStrategy(
                 self.before_first_search_iteration(self.create_test_suite(population))
 
         return population
-    
+
     def _get_best_individuals(self) -> list[tcc.TestCaseChromosome]:
         return self._get_non_dominated_solutions(self._population)
