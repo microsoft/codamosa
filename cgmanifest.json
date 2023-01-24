@@ -1,0 +1,14 @@
+{
+    "$schema": "https://json.schemastore.org/component-detection-manifest.json"
+    "Registrations": [
+        {
+            "Component": { 
+              "Type": "git", 
+              "Git": { 
+                  "RepositoryUrl": "https://github.com/se2p/pynguin", 
+                  "CommitHash": "7bface9377d6a27be75090c7532882bce0eb136f" 
+                    }
+             }
+        },
+    ]
+}
