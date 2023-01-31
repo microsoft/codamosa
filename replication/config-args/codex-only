@@ -1,0 +1,2 @@
+--model_name code-davinci-002 --include-partially-parsable True --allow-expandable-cluster True --algorithm MOSA --large_language_model_seeding True --temperature 0.8 --uninterpreted_statements ONLY --seeded_testcases_reuse_probability 1 --sample-with-replacement True --population 5000
+
