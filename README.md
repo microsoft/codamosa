@@ -5,9 +5,9 @@ This repository contains the code for CodaMOSA. CodaMOSA integrates queries to a
 > Caroline Lemieux, Jeevana Priya Inala, Shuvendu Lahiri, Siddhartha Sen. 2023. CODAMOSA: Escaping Coverage Plateaus in Test
 Generation with Pre-trained Large Language Models. In Proceedings of the 45th International Conference on Software Engineering.
 
-CodaMOSA is implemented on top of the [Pynguin](https://github.com/se2p/pynguin) platform for Python unit test generation; this code base contains the Pynguin code as well as the CodaMOSA algorithm. If you would like to use or build on top of the Pynguin unit test generation part of CodaMOSA, consider building directly off of Pynguin; it is more frequently maintained than CodaMOSA. 
+**CodaMOSA is implemented on top of the [Pynguin](https://github.com/se2p/pynguin) platform for Python unit test generation; this code base contains the Pynguin code as well as the CodaMOSA algorithm. If you would like to use or build on top of the Pynguin unit test generation part of CodaMOSA, consider building directly off of Pynguin; it is more frequently maintained than CodaMOSA.**
 
-The main files added/modified to implement CodaMOSA are:
+The main files added to implement CodaMOSA are:
 ```
 - pynguin/generation/algorithms:
    - codamosastrategy.py: the modified version of mosastrategy.py that implements (1) tracking of coverage plateaus and (2) invoking Codex to generate new testcases. 
@@ -20,7 +20,7 @@ The main files added/modified to implement CodaMOSA are:
 
 ## License
 
-CodaMOSA buils on Pynguin 0.19.0, which was licensed LGPL-3.0. A copy of this license is available in the LICENSES directory. Thefiles modified/added by CodaMOSA are licensed under the MIT license. A copy of this license is available in the [LICENSE.txt](LICSENSE). document. File headers outline the license under which each file is distributed.
+CodaMOSA buils on Pynguin 0.19.0, which was licensed LGPL-3.0. A copy of this license is available in the [LICENSES directory](LICENSES/LGPL-3.0-or-later.txt). Thefiles modified/added by CodaMOSA are licensed under the MIT license. A copy of this license is available in the [LICENSE.txt](LICSENSE). document. File headers outline the license under which each file is distributed.
 
 Versions of Pynguin 0.30.0 and onwards are now licensed as MIT.
 
