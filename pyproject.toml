@@ -1,0 +1,154 @@
+# SPDX-FileCopyrightText: 2019–2022 Pynguin Contributors, Microsoft
+#
+# SPDX-License-Identifier: MIT
+
+[tool.poetry]
+name = "CodaMOSA"
+version = "0.1.0"
+description = "A tool to conduct LLM-aided search-based unit test generation"
+authors = ["Caroline Lemieux", "Stephan Lukasczyk <stephan@lukasczyk.me>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/microsoft/codamosa"
+keywords = [
+    "unit test",
+    "random testing",
+    "search based",
+    "test generation",
+    "codex",
+    "large language models"
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Education :: Testing",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Testing :: Unit",
+    "Typing :: Typed",
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+simple-parsing = "^0.0.18"
+bytecode = "^0"
+typing_inspect = "^0"
+jellyfish = "^0"
+networkx = {extras = ["pydot"], version = "^2"}
+pydot = "^1.4"
+rich = "^12.0"
+pytest = "^7.1"
+Jinja2 = "^3.0"
+Pygments = "^2.11"
+ordered-set = "^4.1"
+MutPy-Pynguin = "^0.7.1"
+typed-ast = "^1.5.3"
+colorama = "^0.4.4"
+colorlog = "^6.6.0"
+requests = "^2.27.1"
+stubs = "^1.0.0"
+types-requests = "^2.27.25"
+tqdm = "^4.64.0"
+
+[tool.poetry.dev-dependencies]
+coverage = "^6.3"
+pytest = "^7.1"
+black = "^22.1"
+pytest-cov = "^3.0"
+pylint = "^2.12"
+pytest-sugar = "^0.9"
+pytest-picked = "^0.4"
+pytest-xdist = "^2.5"
+hypothesis = "^6.36"
+pytest-mock = "^3.7"
+mypy = "^0.940"
+isort = {extras = ["pyproject"], version = "^5.10"}
+pre-commit = "^2.17"
+darglint = "^1.8"
+pyupgrade = "^2.31"
+bandit = "^1.7"
+safety = "^1.10"
+sphinx = "^4.4"
+sphinx-autodoc-typehints = "^1.16"
+flake8 = "^4.0"
+
+[tool.poetry.scripts]
+pynguin = "pynguin.cli:main"
+
+[tool.black]
+line-length = 88
+target_version = ['py310']
+include = '\.pyi?$'
+exclude = '''
+
+(
+  /(
+      \.eggs          # exclude a few common directories in the
+    | \.git           # root of the project
+    | \.pytest_cache
+    | \.mypy_cache
+    | \.venv
+    | venv
+    | _build
+    | build
+    | dist
+    | pynguin.egg-info
+  )/
+)
+'''
+
+[tool.coverage.run]
+branch = true
+source = ["pynguin", "tests"]
+omit = ["tests/fixtures/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "def __str__",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "if typing.TYPE_CHECKING:"
+]
+
+[tool.coverage.html]
+directory = "cov_html"
+
+[tool.isort]
+line_length=88
+multi_line_output=3
+include_trailing_comma=true
+indent='    '
+
+[tool.mypy]
+check_untyped_defs = true
+ignore_errors = false
+ignore_missing_imports = true
+strict_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0.0rc1"
+# Always using Coverage.py disables debugging.
+# addopts = "--cov=pynguin --cov-branch --cov-report html:cov_html --cov-report=term-missing"
+testpaths = [
+  "tests",
+]
+# A lot of our own classes start with Test so pytest will pick them up during test collection.
+# But they don't actually contains tests, so we set an empty matcher for the class name.
+python_classes = ''
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

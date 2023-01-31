@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2019–2022 Pynguin Contributors
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Git
+.git
+.gitignore
+.github
+
+# Docker
+.dockerignore
+
+# IDE
+.idea
+.vscode
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+*$py.class
+.pytest_cache/
+..mypy_cache/
+
+# C extensions
+*.so
+
+# Virtual environment
+.venv
+venv
+
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
