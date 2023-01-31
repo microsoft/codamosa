@@ -41,7 +41,7 @@ jobs:
         run: poetry run mypy pynguin
 
       - name: Linting with flake8
-        run: poetry run flake8 .
+        run: poetry run flake8 --exclude replication,docs  .
 
       - name: Linting with pylint
         run: poetry run pylint pynguin
