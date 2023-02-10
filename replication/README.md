@@ -1,6 +1,6 @@
 # CodaMOSA Artifact
 
-This repo contains code for replication/data analysis of the data from the evaluation of CodaMOSA for ICSE'23. The raw dataset can be found in the [dataset repository](https://github.com/microsoft/codamosa-dataset).
+This repo contains code for replication/data analysis of the data from the evaluation of CodaMOSA for ICSE'23. *Feb 10th, 2023: We are working on the release process for our raw dataset.*
 
 ## License
 
