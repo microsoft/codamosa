@@ -2,7 +2,7 @@
 
 This repository contains the code for CodaMOSA. CodaMOSA integrates queries to a Large Language Model (currently supports the OpenAI API) into search-based algorithms for unit test generation. The paper on CodaMOSA will be published at ICSE'23:
 
-> Caroline Lemieux, Jeevana Priya Inala, Shuvendu Lahiri, Siddhartha Sen. 2023. CODAMOSA: Escaping Coverage Plateaus in Test
+> Caroline Lemieux, Jeevana Priya Inala, Shuvendu K. Lahiri, Siddhartha Sen. 2023. CODAMOSA: Escaping Coverage Plateaus in Test
 Generation with Pre-trained Large Language Models. In *Proceedings of the 45th International Conference on Software Engineering*.
 
 **CodaMOSA is implemented on top of the [Pynguin](https://github.com/se2p/pynguin) platform for Python unit test generation; this code base contains the Pynguin code as well as the CodaMOSA algorithm. If you would like to use or build on top of the Pynguin unit test generation part of CodaMOSA, consider building directly off of Pynguin; it is more frequently maintained than CodaMOSA.**
