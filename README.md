@@ -52,8 +52,7 @@ $ docker run --rm -v $TEST_BASE/test-apps/flutils:/input:ro -v /tmp/flutils-out:
 
 ## Replication package
 
-For information about replicating the results in the ICSE'23 submission, follow the instructions in the supplementary material. 
-TODO: add here.
+For information about replicating the results in the ICSE'23 submission, follow the instructions in the `replication` folder. 
 
 ## Contributing
 
