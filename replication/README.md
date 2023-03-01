@@ -1,6 +1,6 @@
 # CodaMOSA Artifact
 
-This repo contains code for replication/data analysis of the data from the evaluation of CodaMOSA for ICSE'23. *Feb 10th, 2023: We are working on the release process for our raw dataset.*
+This repo contains code for replication/data analysis of the data from the evaluation of CodaMOSA for ICSE'23. The raw dataset can be found in the [dataset repository](https://github.com/microsoft/codamosa-dataset).
 
 ## License
 
@@ -111,13 +111,19 @@ Run the following:
 ```
 $ python3 scripts/create_and_export_figures.py processed-data/big-cc-final.pkl PLOTS_OUTPUT_DIR
 ```
-where `PLOTS_OUTPUT_DIR` is where you would like the plots to go. This will create the paths through time plots and scatter plots in the paper. Because the coverage differences through times plots involve the computation of significance at each time, they take a bit longer to generate, around 1m45s each.
+where `PLOTS_OUTPUT_DIR` is where you would like the plots to go. This will create the paths through time plots and scatter plots in the paper. Because the coverage differences throug times plots involve the computation of significance at each time, they take a bit longer to generate, around 1m45s each.
+
+To validate that the data in `big-cc-final.pkl` is consistent with the raw `final-exp` results, you may clone [the raw dataset](https://github.com/microsoft/codamosa-dataset). Unzip the benchmarks within that dataset, and run the following, where `FINAL_EXP_LOC` points to the cloned `codamosa-dataset` directory.
+```
+$ python3 scripts/create_and_export_figures.py FINAL_EXP_LOC/final-exp PLOTS_OUTPUT_DIR
+```
+This will create a fresh new coverage container (`cc`) containing the data in `final-exp`, but be aware it takes a while to process all the information (approximately 12 minutes). 
 
 To conduct exploratory data analysis, run in interative mode
 ```
 $ python3 -i scripts/create_and_export_figures.py processed-data/big-cc-final.pkl PLOTS_OUTPUT_DIR
 ```
-The `cc` object contains processed data, as well as several methods for exploratory data analysis and plotting. 
+The `cc` object contains processed data, as well as several methods for exploratory data analysis and plotting. If running from `final-exp`, you can pickle the created `cc` object and verify that it has identical contents to the `big-cc-final.pkl` file.
 
 ### Similarity Analysis and Plots
 
@@ -127,6 +133,12 @@ To generate the plot in Figure 4, from pre-processed data, run
 ```
 $ python3 scripts/plot_similarities.py processed-data/similarity_analysis_info.pkl PLOTS_OUTPUT_DIR
 ```
+
+Running the full similarity analysis takes a *very long time*. The particularly long part is to run the analysis for all the `ansible` files (14-17 hours). The provided `scripts/modules_base_and_name.csv` places these modules last. You can remove some of the modules from this file to restrict the length of the similarity analysis. You can then re-run the analysis from raw data to generate the processed data as follows:
+```
+$ python3 scripts/create_similarity_data.py test-apps FINAL_EXP_LOC/final-exp/codamosa-0.8-uninterp scripts/modules_base_and_name.csv OUTPUT_PKL_FILE
+```
+Where  `OUTPUT_PKL_FILE` is where you want to store the resulting pickle file.  
 
 ## Running CodaMOSA
 
@@ -157,6 +169,19 @@ The file passed as `AUTH_KEY` should contain the following:
 ```
 The configuration arguments by default use the model `code-davinci-002`; if your authorization key does not give access to that model you may need to change it. If you change to a model that has a smaller context size (not 4000), you will need to modify the CodaMOSA code to reflect this (`pynguin.languagemodels.model`), and rebuild the runner following the instructions in the codamosa directory.
 
+
+#### Re-running with a generation file
+If you do not have access to an OpenAI authorization key, you can use the `--replay-generation-from-file` argument with a suitable input. The expected format is that of a `codex_generations.py` file, as can be found in one of the CodaMOSA or CodexOnly runs in the `final-exps` directory of the [CodaMOSA dataset](https://github.com/microsoft/codamosa-dataset). 
+
+Copy the generation file in your output directory, i.e. `OUTPUT_DIR/previous_gens.py`
+
+The file passed as `AUTH_KEY` should contain the following:
+```
+--replay-generation-from-file /output/previous_gens.py   
+```
+(the `run_one.sh` script names the output directory `/output`, thus the use of this as the root)
+
+*Note:* Codamosa can write to the output directory, so if you are testing a module than can affect the file system, make sure to backup the contents of `OUTPUT_DIR/previous_gens.py` somewhere else!
 
 ### Running CodaMOSA on your own module.
 
