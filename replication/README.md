@@ -55,6 +55,8 @@ pynguin-runner         latest    ...
 ...
 ```
 
+**Note**: Many of the following scripts will invoke `docker` commands. You may encounter issues running them if your user is not in the [docker group](https://docs.docker.com/engine/install/linux-postinstall/). To resolve this, you may either follow the instructions from docker to add your user to the docker group (preferred), or preface the commands below with `sudo`, or add `--user=root` as an option to the docker commands in the scripts below. 
+
 ### Start the benchmark container
 
 Start the benchmark container with
