@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: MIT
 
 [tool.poetry]
-name = "CodaMOSA"
-version = "0.1.0"
+name = "pynguin"
+version = "0.19.0"
 description = "A tool to conduct LLM-aided search-based unit test generation"
 authors = ["Caroline Lemieux", "Stephan Lukasczyk <stephan@lukasczyk.me>"]
 license = "MIT"
