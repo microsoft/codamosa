@@ -569,15 +569,22 @@ optional = false
 python-versions = ">3.6"
 files = [
     {file = "jellyfish-0.9.0-cp310-cp310-macosx_10_14_x86_64.whl", hash = "sha256:c0cbe9d294f75b4fa05c0a5cb7ca4c8e85297a3ec9bf66d13ed330190a86381f"},
+    {file = "jellyfish-0.9.0-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:8666649128ba556e9cd361491308ce1da9b38184aac7532003fa37d6307c9985"},
     {file = "jellyfish-0.9.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a3b9fae0cba82ef5839d8f2e2275387807ccb6c3041fdc8e89bbcadaf09a5837"},
     {file = "jellyfish-0.9.0-cp310-cp310-win_amd64.whl", hash = "sha256:465a2109e16b87554aec7ddd4ba0c8798f2377f6f957aed30dc64ab46b47e703"},
+    {file = "jellyfish-0.9.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:6a02ec72781b53bd28a6fa9ac6f121285c376f7dc9926d024266fed5889c1824"},
+    {file = "jellyfish-0.9.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:aeaa56ec1949553669acb2c35704a73e1954c1e3601a156e3025784baafcba7e"},
+    {file = "jellyfish-0.9.0-cp311-cp311-win_amd64.whl", hash = "sha256:6964418daeea9f84760484e410457203e817c9a64473ec19a331fe16af704999"},
     {file = "jellyfish-0.9.0-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:35eefbbfb93aa82a4a4e5eafc3b866c3ac26418f064c4538c345b11cdebf2b5b"},
+    {file = "jellyfish-0.9.0-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:ae2dd58c6027d2c7b8a7be5ce56e98cfc6c40043d314ae385e912e8ace4f4124"},
     {file = "jellyfish-0.9.0-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:96290b1e1acb30b2466112ba4ed9c7b511ac7028d7e9096b38558ea1f0484a98"},
     {file = "jellyfish-0.9.0-cp37-cp37m-win_amd64.whl", hash = "sha256:c891c1465679bc9c2d114f75364e3b4dadeb6959a37c3e3fa41bc7746a84e060"},
     {file = "jellyfish-0.9.0-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:cc68f01450290d5ad631f63917834788c178eebaa6efb8196319eea2f146ed70"},
+    {file = "jellyfish-0.9.0-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:03c50e577a1b5a612f1a31fab92642ea5067397bfba68da78773777e93e5acd0"},
     {file = "jellyfish-0.9.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3b6ffe2ab3d557892db1f87bb4846dfb7a697eba9248d6f2554555f998f4a265"},
     {file = "jellyfish-0.9.0-cp38-cp38-win_amd64.whl", hash = "sha256:514c9d9e69170ac2c3eff48ba02d4f03540538d63028b76ebc8a2cb589e8cdd0"},
     {file = "jellyfish-0.9.0-cp39-cp39-macosx_10_14_x86_64.whl", hash = "sha256:b682a6235d581669e6a9f0a6d716a6606bf42525ab90de4c6a49c36bfbdd73b4"},
+    {file = "jellyfish-0.9.0-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:02b2e7952067f8dda804f35f226723f4e466e43dbe7c5060ce02d2e056711f23"},
     {file = "jellyfish-0.9.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:954290c165511681aa9627e3c4305acf425942ad64e745ea56865cff8e0661a6"},
     {file = "jellyfish-0.9.0-cp39-cp39-win_amd64.whl", hash = "sha256:8759c6d34f1bea5860ab5807968399b9dd259c703f6c5071fcd5703bf7a00d99"},
     {file = "jellyfish-0.9.0.tar.gz", hash = "sha256:40c9a2ffd8bd3016f7611d424120442f627f56d518a106847dc93f0ead6ad79a"},
@@ -1231,25 +1238,25 @@ files = [
 
 [[package]]
 name = "requests"
-version = "2.27.1"
+version = "2.31.0"
 description = "Python HTTP for Humans."
 category = "main"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
+python-versions = ">=3.7"
 files = [
-    {file = "requests-2.27.1-py2.py3-none-any.whl", hash = "sha256:f22fa1e554c9ddfd16e6e41ac79759e17be9e492b3587efa038054674760e72d"},
-    {file = "requests-2.27.1.tar.gz", hash = "sha256:68d7c56fd5a8999887728ef304a6d12edc7be74f1cfa47714fc8b414525c9a61"},
+    {file = "requests-2.31.0-py3-none-any.whl", hash = "sha256:58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f"},
+    {file = "requests-2.31.0.tar.gz", hash = "sha256:942c5a758f98d790eaed1a29cb6eefc7ffb0d1cf7af05c3d2791656dbd6ad1e1"},
 ]
 
 [package.dependencies]
 certifi = ">=2017.4.17"
-charset-normalizer = {version = ">=2.0.0,<2.1.0", markers = "python_version >= \"3\""}
-idna = {version = ">=2.5,<4", markers = "python_version >= \"3\""}
-urllib3 = ">=1.21.1,<1.27"
+charset-normalizer = ">=2,<4"
+idna = ">=2.5,<4"
+urllib3 = ">=1.21.1,<3"
 
 [package.extras]
-socks = ["PySocks (>=1.5.6,!=1.5.7)", "win-inet-pton"]
-use-chardet-on-py3 = ["chardet (>=3.0.2,<5)"]
+socks = ["PySocks (>=1.5.6,!=1.5.7)"]
+use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "rich"
@@ -1805,4 +1812,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "64a8e64979afb67ed86c82897ccdf1f2c9bf39e3b55aae4f05d08eb210680125"
+content-hash = "430fc98982fc671da77daba9e1a18a51c6062e0e8695fa89c373d5513e9bbadb"
