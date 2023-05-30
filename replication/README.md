@@ -152,38 +152,38 @@ Make sure you have loaded the `codamosa-runner` image. You can use `scripts/run_
 $ ./scripts/run_one.sh MODULE_NAME OUT_DIR ARGS_FILE AUTH_KEY SEARCH_TIME
 ```
 
-`./scripts/run_one.sh` takes the module name, finds its base directory by grepping against the `test-apps/good_modules.csv` file, then creates the output directory, and invokes `docker run codamosa-runner` with the provided arguments and authorization key. It also creates the appropriate bind mounts for the runner container.
+`./scripts/run_one.sh` takes the module name, finds its base directory by grepping against the `test-apps/good_modules.csv` file, then creates the output directory, and invokes `docker run codamosa-runner` with the provided arguments and authorization key (or existing codex generations for replaying). It also creates the appropriate bind mounts for the runner container.
 
 For example, try
 ```
-$ ./scripts/run_one.sh flutils.packages /tmp/flutils config-args/codamosa-0.8-uninterp AUTH_KEY 30
+$ ./scripts/run_one.sh flutils.packages /tmp/flutils config-args/codamosa-0.8-uninterp 30 $PLAY_OPTION
 ```
 On most runs, this should invoke a the targeted generation step once, resulting in 10 calls to Codex. 
 
 
-For the `AUTH_KEY` file, you have two options:
+For the `$PLAY_OPTION`, you have two options:
 
 
 #### Re-running with an OpenAI authorization key
-The file passed as `AUTH_KEY` should contain the following:
+The file passed as `AUTH_KEY_FILE` should contain your OpenAI key. The `$PLAY_OPTION` should look like this:
 ```
---authorization_key [YOUR_AUTH_KEY_HERE]
+--auth [PATH_TO_YOUR_AUTH_KEY]
 ```
 The configuration arguments by default use the model `code-davinci-002`; if your authorization key does not give access to that model you may need to change it. If you change to a model that has a smaller context size (not 4000), you will need to modify the CodaMOSA code to reflect this (`pynguin.languagemodels.model`), and rebuild the runner following the instructions in the codamosa directory.
 
 
 #### Re-running with a generation file
-If you do not have access to an OpenAI authorization key, you can use the `--replay-generation-from-file` argument with a suitable input. The expected format is that of a `codex_generations.py` file, as can be found in one of the CodaMOSA or CodexOnly runs in the `final-exps` directory of the [CodaMOSA dataset](https://github.com/microsoft/codamosa-dataset). 
+If you do not have access to an OpenAI authorization key, you can use the `--replay` argument with a suitable input. The expected format is that of a `codex_generations.py` file, as can be found in one of the CodaMOSA or CodexOnly runs in the `final-exps` directory of the [CodaMOSA dataset](https://github.com/microsoft/codamosa-dataset). 
 
 Copy the generation file in your output directory, i.e. `OUTPUT_DIR/previous_gens.py`
 
-The file passed as `AUTH_KEY` should contain the following:
+The `$PLAY_OPTION` should look like this:
 ```
---replay-generation-from-file /output/previous_gens.py   
+--replay [PATH_TO_PREVIOUS_CODEX_GENERATIONS]
 ```
 (the `run_one.sh` script names the output directory `/output`, thus the use of this as the root)
 
-*Note:* Codamosa can write to the output directory, so if you are testing a module than can affect the file system, make sure to backup the contents of `OUTPUT_DIR/previous_gens.py` somewhere else!
+*Note:* Codamosa can write to the output directory, so if you are testing a module that can affect the file system, make sure to backup the contents of `OUTPUT_DIR/previous_gens.py` somewhere else!
 
 ### Running CodaMOSA on your own module.
 
