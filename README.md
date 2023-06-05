@@ -28,7 +28,7 @@ Versions of Pynguin 0.30.0 and onwards are now licensed as MIT.
 
 To run on a project, first build the runner:
 ```
-docker build -t codamosa-runner -f docker/Dockerfile --platform linux/amd64
+docker build -t codamosa-runner -f docker/Dockerfile --platform linux/amd64 .
 ```
 (or use the target platform of your choice --- should match the machine on which you want to run experiments.)
 
