@@ -266,10 +266,13 @@ class _OpenAILanguageModel:
         """
         context = self._get_maximal_source_context(context_start, context_end)
 
-        url = f"https://api.openai.com/v1/engines/{self.complete_model}/completions"
+        ##url = f"https://api.openai.com/v1/engines/{self.complete_model}/completions"
+        url = f"http://localhost:8000/v1/completions"
+
         # We want to stop the generation before it spits out a bunch of other tests,
         # because that slows things down
         payload = {
+            "model": self.complete_model,
             "prompt": context + "\n" + function_header,
             "max_tokens": 200,
             "temperature": self._temperature,
