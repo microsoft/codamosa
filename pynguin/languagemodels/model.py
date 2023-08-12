@@ -77,6 +77,38 @@ def approx_number_tokens(line: str):
     return len(toks)
 
 
+def _openai_api_legacy_request(self, function_header, context):
+    ##TODO: remove this function as part of Issue #19
+    url = f"{self._model_base_url}/v1/engines/{self._complete_model}/completions"
+    payload = {
+        "prompt": context + "\n" + function_header,
+        "max_tokens": 200,
+        "temperature": self._temperature,
+        "stop": ["\n# Unit test for", "\ndef ", "\nclass "],
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {self._authorization_key}",
+    }
+    return url, payload, headers
+
+
+def _openai_api_request(self, function_header, context):
+    url = f"{self._model_base_url}{self._model_relative_url}"
+    payload = {
+        "model": self._complete_model,
+        "prompt": context + "\n" + function_header,
+        "max_tokens": 200,
+        "temperature": self._temperature,
+        "stop": ["\n# Unit test for", "\ndef ", "\nclass "],
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {self._authorization_key}",
+    }
+    return url, payload, headers
+
+
 class _OpenAILanguageModel:
     """
     An interface for an OpenAI language model to generate/mutate tests as natural language.
@@ -87,6 +119,8 @@ class _OpenAILanguageModel:
         self._test_src: str
         self._authorization_key: str
         self._complete_model: str
+        self._model_base_url: str
+        self._model_relative_url: str
         self._edit_model: str
         self._log_path: str = ""
         # TODO(ANON): make configurable; adding a fudge factor
@@ -136,6 +170,8 @@ class _OpenAILanguageModel:
     def authorization_key(self, authorization_key: str):
         self._authorization_key = authorization_key
 
+
+
     @property
     def complete_model(self) -> str:
         """Provides the name of the model used for completion tasks
@@ -144,6 +180,7 @@ class _OpenAILanguageModel:
             The name of the model used for completion tasks
         """
         return self._complete_model
+
 
     @complete_model.setter
     def complete_model(self, complete_model: str):
@@ -161,6 +198,34 @@ class _OpenAILanguageModel:
     @edit_model.setter
     def edit_model(self, edit_model: str):
         self._edit_model = edit_model
+
+    @property
+    def model_base_url(self) -> str:
+        """The base url used to interact with the model. Put together, model_base_url and model_relative_url describe
+        the url for the model
+
+        Returns:
+            The base url used to interact with the model
+        """
+        return self._model_base_url
+
+    @model_base_url.setter
+    def model_base_url(self, model_base_url: str):
+        self._model_base_url = model_base_url
+
+    @property
+    def model_relative_url(self) -> str:
+        """The relative url used to interact with the model. Put together, model_base_url and model_relative_url describe
+        the url for the model
+
+        Returns:
+            The relative url used to interact with the model
+        """
+        return self._model_relative_url
+
+    @model_relative_url.setter
+    def model_relative_url(self, model_relative_url: str):
+        self._model_relative_url = model_relative_url
 
     def _get_maximal_source_context(
         self, start_line: int = -1, end_line: int = -1, used_tokens: int = 0
@@ -266,22 +331,15 @@ class _OpenAILanguageModel:
         """
         context = self._get_maximal_source_context(context_start, context_end)
 
-        ##url = f"https://api.openai.com/v1/engines/{self.complete_model}/completions"
-        url = f"http://localhost:8000/v1/completions"
+        if self.model_base_url == "https://api.openai.com":
+            url, payload, headers = _openai_api_legacy_request(self, function_header, context)
+        else:
+            url, payload, headers = _openai_api_request(self, function_header, context)
 
         # We want to stop the generation before it spits out a bunch of other tests,
         # because that slows things down
-        payload = {
-            "model": self.complete_model,
-            "prompt": context + "\n" + function_header,
-            "max_tokens": 200,
-            "temperature": self._temperature,
-            "stop": ["\n# Unit test for", "\ndef ", "\nclass "],
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self._authorization_key}",
-        }
+
+
         time_start = time.time()
         res = requests.post(url, data=json.dumps(payload), headers=headers)
         self.time_calling_codex += time.time() - time_start
