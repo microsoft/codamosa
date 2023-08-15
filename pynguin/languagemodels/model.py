@@ -78,7 +78,7 @@ def approx_number_tokens(line: str):
 
 
 def _openai_api_legacy_request(self, function_header, context):
-    ##TODO: remove this function as part of Issue #19
+    # TODO: remove this function as part of Issue #19
     url = f"{self._model_base_url}/v1/engines/{self._complete_model}/completions"
     payload = {
         "prompt": context + "\n" + function_header,
@@ -170,8 +170,6 @@ class _OpenAILanguageModel:
     def authorization_key(self, authorization_key: str):
         self._authorization_key = authorization_key
 
-
-
     @property
     def complete_model(self) -> str:
         """Provides the name of the model used for completion tasks
@@ -180,7 +178,6 @@ class _OpenAILanguageModel:
             The name of the model used for completion tasks
         """
         return self._complete_model
-
 
     @complete_model.setter
     def complete_model(self, complete_model: str):
@@ -215,8 +212,8 @@ class _OpenAILanguageModel:
 
     @property
     def model_relative_url(self) -> str:
-        """The relative url used to interact with the model. Put together, model_base_url and model_relative_url describe
-        the url for the model
+        """The relative url used to interact with the model. Put together, model_base_url and model_relative_url
+        describe the url for the model
 
         Returns:
             The relative url used to interact with the model
@@ -332,13 +329,14 @@ class _OpenAILanguageModel:
         context = self._get_maximal_source_context(context_start, context_end)
 
         if self.model_base_url == "https://api.openai.com":
-            url, payload, headers = _openai_api_legacy_request(self, function_header, context)
+            url, payload, headers = _openai_api_legacy_request(
+                self, function_header, context
+            )
         else:
             url, payload, headers = _openai_api_request(self, function_header, context)
 
         # We want to stop the generation before it spits out a bunch of other tests,
         # because that slows things down
-
 
         time_start = time.time()
         res = requests.post(url, data=json.dumps(payload), headers=headers)
