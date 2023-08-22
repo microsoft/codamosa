@@ -369,11 +369,13 @@ class CodaMosaConfiguration:
     """The OpenAI Model to use for completions"""
 
     model_base_url: str = ""
-    """The base url used to interact with the model. Put together, model_base_url and model_relative_url describe
+    """The base url used to interact with the model.
+    Put together, model_base_url and model_relative_url describe
     the url for the model"""
 
     model_relative_url: str = ""
-    """The relative url used to interact with the model. Put together, model_base_url and model_relative_url describe
+    """The relative url used to interact with the model.
+    Put together, model_base_url and model_relative_url describe
     the url for the model"""
 
     max_plateau_len: int = 25
