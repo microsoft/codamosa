@@ -251,6 +251,13 @@ def _setup_language_model_seeding(
             model.languagemodel.complete_model = (
                 config.configuration.codamosa.model_name
             )
+            model.languagemodel.model_base_url = (
+                config.configuration.codamosa.model_base_url
+            )
+            model.languagemodel.model_relative_url = (
+                config.configuration.codamosa.model_relative_url
+            )
+
     else:
         return True
 

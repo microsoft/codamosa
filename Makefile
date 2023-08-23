@@ -135,7 +135,7 @@ isort:
 
 .PHONY: black
 black:
-	poetry run black .
+	poetry run black --exclude '/replication/' .
 
 .PHONY: darglint
 darglint:

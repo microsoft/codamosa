@@ -1,5 +1,5 @@
 #!/bin/bash
-# This file lets you run one instance of codamosa, etc.  
+# This file lets you run one instance of codamosa, etc.
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}"; )" &> /dev/null && pwd 2> /dev/null; )";
 
@@ -10,6 +10,7 @@ fi
 MOD=$1
 OUT_DIR=$2
 ARGFILE=$3
+ARGS=`cat $ARGFILE`
 SEARCH_TIME=$4
 PLAY_OPTION=$5 #"--auth" for querying codex with auth key or "--replay" with existing codex generations
 PLAY_KEY=$6 # auth key file or codex generations file
@@ -19,10 +20,10 @@ if [[ ! -d $SCRIPT_DIR/../test-apps ]]; then
 	exit 1
 fi
 
-grep $1 $SCRIPT_DIR/../test-apps/good_modules.csv | 
+grep $1 $SCRIPT_DIR/../test-apps/good_modules.csv |
 while IFS=, read  -r TEST_DIR TEST_MOD
 do
-	TEST_DIR=$(dirname $SCRIPT_DIR)/$TEST_DIR 
+	TEST_DIR=$(dirname $SCRIPT_DIR)/$TEST_DIR
 	mkdir -p $OUT_DIR
 	if [ $PLAY_OPTION = "--auth" ]; then
 		PLAY_CONFIG="--authorization-key $(cat $PLAY_KEY)"
