@@ -49,6 +49,7 @@ $ docker run --rm -v $TEST_BASE/test-apps/flutils:/input:ro -v /tmp/flutils-out:
     --algorithm CODAMOSA -v --include-partially-parsable True --allow-expandable-cluster True \
     --uninterpreted_statements ONLY --temperature 0.8 --model_name code-davinci-002 --authorization-key $AUTH_KEY"
 ```
+Note (June 2024): the model `code-davinci-002` is no longer available, you will need to update the command with a model you have access to. 
 
 ## Replication package
 
