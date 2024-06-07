@@ -160,6 +160,8 @@ $ ./scripts/run_one.sh flutils.packages /tmp/flutils config-args/codamosa-0.8-un
 ```
 On most runs, this should invoke a the targeted generation step once, resulting in 10 calls to Codex. 
 
+Note (Jun 2024): the files in `config-args` use the model `code-davinci-002`. This model is no longer accessible, to make new queries to OpenAI you will have to update it to a different model name. For historical reasons (since CodaMOSA was evaluated with `code-davinci-002`, we will not update the files in `config-args` to a new default.
+
 
 For the `$PLAY_OPTION`, you have two options:
 
