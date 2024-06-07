@@ -37,7 +37,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.10"
 simple-parsing = "^0.0.18"
-bytecode = "^0"
+bytecode = "0.13.0"
 typing_inspect = "^0"
 jellyfish = "^0"
 networkx = {extras = ["pydot"], version = "^2"}
