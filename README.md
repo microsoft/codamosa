@@ -5,6 +5,8 @@ This repository contains the code for CodaMOSA. CodaMOSA integrates queries to a
 > Caroline Lemieux, Jeevana Priya Inala, Shuvendu K. Lahiri, Siddhartha Sen. 2023. CODAMOSA: Escaping Coverage Plateaus in Test
 Generation with Pre-trained Large Language Models. In *Proceedings of the 45th International Conference on Software Engineering*.
 
+**For replication**: the `replication` directory contains several large files, which are stored with GitHub's Large File Storage (lfs). You need to install [git-lfs](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage) to get properly clone these files when cloning the codamosa repository.
+
 **CodaMOSA is implemented on top of the [Pynguin](https://github.com/se2p/pynguin) platform for Python unit test generation; this code base contains the Pynguin code as well as the CodaMOSA algorithm. If you would like to use or build on top of the Pynguin unit test generation part of CodaMOSA, consider building directly off of Pynguin; it is more frequently maintained than CodaMOSA.**
 
 The main files added to implement CodaMOSA are:
