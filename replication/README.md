@@ -6,6 +6,16 @@ This repo contains code for replication/data analysis of the data from the evalu
 
 The code in this subfolder is all MIT licensed.
 
+## Large Files
+
+You will need to install [`git-lfs`](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage) to properly clone the 4 large files in this replication folder. If you encounter errors loading the docker images or pickled data, first confirm that the files you have cloned match the expected md5sums:
+```
+MD5 (replication/docker-images/benchmarks-docker.tar.gz) = edc37ca35ef961cd40150ec25a5c01bc
+MD5 (replication/docker-images/codamosa-docker.tar.gz) = 8375d50587fd684309ee489090da9f10
+MD5 (replication/processed-data/big-cc-final.pkl) = 8a8f443220040bb99278c0a8b96d20a4
+MD5 (replication/processed-data/similarity_analysis_info.pkl) = 7c7f75e751cff8d56dd380fe4dda54f0
+```
+
 ## Directory structure
 
 ```
